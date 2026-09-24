@@ -127,8 +127,10 @@ Without these flags, email features stay off.
 - **Email me** on any message sends a copy to your own verified address.
 - The BBS never sends to an address its owner hasn't verified, so it can't be
   used as a spam relay. Replies to these emails aren't delivered anywhere.
-- Mail only goes out over TLS (STARTTLS, or implicit TLS on port 465); only
-  a relay on the same machine may skip it.
+- Mail to a remote relay only goes out over TLS with a valid certificate
+  (STARTTLS, or implicit TLS on port 465). A relay on the same machine, such
+  as a local Postfix on `127.0.0.1:25`, is used without TLS, since the mail
+  never leaves the machine on its way there.
 - An address can belong to one account only, and it gets at most 3 code
   emails a day however many accounts ask, so the code emails can't be used
   to flood someone's inbox. Header values are stripped of line breaks, so a subject can't

@@ -106,13 +106,16 @@ func (s *SMTPSender) dial(ctx context.Context) (*smtp.Client, error) {
 		conn.Close()
 		return nil, fmt.Errorf("mailer: %w", err)
 	}
-	if s.cfg.Port != implicitTLSPort {
+	// A relay on this machine is reached without leaving it, and usually has
+	// a self-signed certificate, so it gets no STARTTLS. Remote relays must
+	// offer TLS with a valid certificate.
+	if s.cfg.Port != implicitTLSPort && !isLoopback(s.cfg.Host) {
 		if ok, _ := c.Extension("STARTTLS"); ok {
 			if err := c.StartTLS(tlsCfg); err != nil {
 				c.Close()
 				return nil, fmt.Errorf("mailer: STARTTLS: %w", err)
 			}
-		} else if !isLoopback(s.cfg.Host) {
+		} else {
 			// Codes and message copies are private too, not just the password.
 			c.Close()
 			return nil, errors.New("mailer: server offers no TLS; refusing to send mail in the clear")

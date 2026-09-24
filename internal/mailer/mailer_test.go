@@ -25,16 +25,22 @@ type fakeSMTP struct {
 	rcpt    chan string
 	data    chan string
 	rejectR bool
+	tls     bool // advertise STARTTLS (and fail it, having no certificate)
 }
 
 func startFakeSMTP(t *testing.T, rejectRcpt bool) *fakeSMTP {
+	t.Helper()
+	return startFakeSMTPWith(t, rejectRcpt, false)
+}
+
+func startFakeSMTPWith(t *testing.T, rejectRcpt, offerTLS bool) *fakeSMTP {
 	t.Helper()
 	ln, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {
 		t.Fatal(err)
 	}
 	t.Cleanup(func() { ln.Close() })
-	f := &fakeSMTP{addr: ln.Addr().String(), auth: make(chan string, 1), rcpt: make(chan string, 1), data: make(chan string, 1), rejectR: rejectRcpt}
+	f := &fakeSMTP{addr: ln.Addr().String(), auth: make(chan string, 1), rcpt: make(chan string, 1), data: make(chan string, 1), rejectR: rejectRcpt, tls: offerTLS}
 	go func() {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -59,7 +65,12 @@ func (f *fakeSMTP) serve(conn net.Conn) {
 		switch {
 		case strings.HasPrefix(cmd, "EHLO"), strings.HasPrefix(cmd, "HELO"):
 			say("250-fake")
+			if f.tls {
+				say("250-STARTTLS")
+			}
 			say("250 AUTH PLAIN")
+		case cmd == "STARTTLS":
+			say("454 TLS not available")
 		case strings.HasPrefix(cmd, "AUTH PLAIN"):
 			raw, _ := base64.StdEncoding.DecodeString(strings.TrimSpace(line[len("AUTH PLAIN"):]))
 			f.auth <- string(raw)
@@ -251,4 +262,15 @@ func TestDomainOf(t *testing.T) {
 	if domainOf("kasia@example.com") != "example.com" || domainOf("nope") != "?" {
 		t.Fatal("domainOf")
 	}
+}
+
+func TestLoopbackRelaySkipsSTARTTLS(t *testing.T) {
+	f := startFakeSMTPWith(t, false, true)
+	s := testSender(t, f.addr)
+	if err := s.Send(context.Background(), Message{To: "kasia@example.com", Subject: "x", Body: "y"}); err != nil {
+		t.Fatalf("send via a loopback relay offering STARTTLS: %v", err)
+	}
+	<-f.auth
+	<-f.rcpt
+	<-f.data
 }
