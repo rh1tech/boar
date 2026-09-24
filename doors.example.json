@@ -1,0 +1,26 @@
+[
+  {
+    "key": "boarhunt",
+    "name": "Boar Hunt",
+    "description": "Find the wild boar in the forest (the example door)",
+    "command": ["./bin/boar-door-example", "-dropfile", "{doorsys}"],
+    "io": "stdio",
+    "max_minutes": 15
+  },
+  {
+    "key": "lord",
+    "name": "Legend of the Red Dragon",
+    "description": "The classic RPG. Needs DOSBox-X and your own copy of LORD.",
+    "command": [
+      "dosbox-x", "-conf", "doors/lord/dosbox.conf",
+      "-set", "serial serial1=nullmodem server:127.0.0.1 port:{port} transparent:1",
+      "-c", "mount d {dropdir}",
+      "-c", "c:\\lord\\start.bat {node}",
+      "-exit"
+    ],
+    "dir": ".",
+    "io": "tcp",
+    "single_node": false,
+    "max_minutes": 60
+  }
+]

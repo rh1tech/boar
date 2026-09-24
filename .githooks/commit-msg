@@ -1,0 +1,16 @@
+#!/bin/sh
+# Reject commit messages that carry co-author trailers or AI tool traces.
+# Enable with: git config core.hooksPath .githooks
+
+msg_file="$1"
+# Ignore comment lines git strips anyway.
+body=$(grep -v '^#' "$msg_file")
+
+pattern='co-authored-by|generated (with|by)|claude|anthropic|openai|chatgpt|copilot|gemini|\bai[- ](generated|assisted)|noreply@anthropic|🤖'
+
+if printf '%s\n' "$body" | grep -Eiq "$pattern"; then
+	echo "commit-msg: message contains a co-author trailer or AI tool reference:" >&2
+	printf '%s\n' "$body" | grep -Ein "$pattern" | sed 's/^/  line /' >&2
+	echo "Remove it and commit again." >&2
+	exit 1
+fi
