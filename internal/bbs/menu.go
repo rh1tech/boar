@@ -3,6 +3,7 @@ package bbs
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"boar/internal/store"
@@ -60,6 +61,7 @@ func (s *session) mainMenu() error {
 			return err
 		}
 		s.header("Main Menu")
+		s.print(s.statusStrip(c) + "\n")
 		chatNote := ""
 		if c.inChat > 0 {
 			chatNote = fmt.Sprintf("%s(%d here)", colValue, c.inChat)
@@ -76,16 +78,16 @@ func (s *session) mainMenu() error {
 			{'L', "Last callers", ""},
 			{'U', "User list", fmt.Sprintf("%s(%d)", colDim, c.members)},
 			{'O', "Oneliner wall", ""},
-			{'S', "Settings", ""},
 		})
-		keys := "MBCPNDWLUOSG"
 		s.approvalNotice()
-		s.print("\n")
+		keys := "MBCPNDWLUOSG"
+		bar := []menuItem{{'S', "Settings", ""}}
 		if s.user.Sysop {
 			keys += "!"
-			s.print("   " + menuItem{'!', "Sysop menu", s.pendingNote()}.render() + "\n")
+			bar = append(bar, menuItem{'!', "Sysop", s.pendingNote()})
 		}
-		s.print("   " + menuItem{'G', "Goodbye", colDim + "(log off)"}.render() + "\n")
+		bar = append(bar, menuItem{'G', "Goodbye", ""})
+		s.print("\n" + s.keyBar(bar) + "\n")
 
 		k, err := s.menuPrompt("Main", keys)
 		if err != nil {
@@ -146,14 +148,18 @@ func (s *session) mainMenuAction(k rune) error {
 func (s *session) whoOnline() error {
 	s.setActivity("Who's online")
 	s.header("Who's Online")
-	s.print("\n" + s.whoTable() + "\n")
+	if err := s.showWho(); err != nil {
+		return err
+	}
 	return s.pause()
 }
 
-// whoTable renders the online callers, one per line.
-func (s *session) whoTable() string {
-	out := fmt.Sprintf("%s Node  %s %s %s Online\n", colDim, term.Pad("Handle", 18), term.Pad("Location", 16), term.Pad("Doing", 18))
-	for _, n := range s.srv.nodes.online() {
+// showWho prints the online callers in a panel.
+func (s *session) showWho() error {
+	online := s.srv.nodes.online()
+	heading := fmt.Sprintf("Node  %s %s %s On", term.Pad("Handle", 18), term.Pad("Location", 16), term.Pad("Doing", 20))
+	rows := make([]string, 0, len(online))
+	for _, n := range online {
 		handle := n.Handle
 		if handle == "" {
 			handle = "(logging in)"
@@ -162,14 +168,18 @@ func (s *session) whoTable() string {
 		if n.Secure {
 			lock = colOK + "·"
 		}
-		out += fmt.Sprintf("%s%5d%s %s%s %s%s %s%s %s%s\n",
+		rows = append(rows, fmt.Sprintf("%s%4d%s %s%s %s%s %s%s %s%s",
 			colBright, n.ID, lock,
 			colHandle, safe(term.Pad(handle, 18)),
 			colLabel, safe(term.Pad(n.Location, 16)),
-			colInfo, safe(term.Pad(n.Activity, 18)),
-			colDim, shortDuration(time.Since(n.Since)))
+			colInfo, safe(term.Pad(n.Activity, 20)),
+			colDim, shortDuration(time.Since(n.Since))))
 	}
-	return out + fmt.Sprintf("%s        %s·%s = connected over SSH\n", colDim, colOK, colDim)
+	if err := s.table(plural(len(online), "caller")+" online", heading, rows, "Nobody's here."); err != nil {
+		return err
+	}
+	s.printf(" %s·%s connected over SSH\n", colOK, colDim)
+	return nil
 }
 
 func (s *session) userList() error {
@@ -179,23 +189,23 @@ func (s *session) userList() error {
 	if err != nil {
 		return err
 	}
-	lines := []string{fmt.Sprintf("%s %s %s %s Calls", colDim, term.Pad("Handle", 20), term.Pad("Location", 20), term.Pad("Last call", 12))}
+	heading := fmt.Sprintf(" %s %s %s Calls", term.Pad("Handle", 20), term.Pad("Location", 22), term.Pad("Last call", 12))
+	rows := make([]string, 0, len(users))
 	for _, u := range users {
 		badge := " "
 		if u.Sysop {
 			badge = colSysop + "*"
 		}
-		lines = append(lines, fmt.Sprintf("%s%s%s %s%s %s%s %s%5d",
+		rows = append(rows, fmt.Sprintf("%s%s%s %s%s %s%s %s%5d",
 			badge, colHandle, safe(term.Pad(u.Handle, 20)),
-			colLabel, safe(term.Pad(u.Location, 20)),
+			colLabel, safe(term.Pad(u.Location, 22)),
 			colInfo, term.Pad(lastCall(u.LastLogin), 12),
 			colValue, u.Calls))
 	}
-	s.print("\n")
-	if _, err := s.page(lines, 4); err != nil {
+	if err := s.table(plural(len(users), "member"), heading, rows, "No members yet."); err != nil {
 		return err
 	}
-	s.printf("\n %s*%s = sysop\n", colSysop, colDim)
+	s.printf(" %s*%s sysop\n", colSysop, colDim)
 	return s.pause()
 }
 
@@ -206,14 +216,17 @@ func (s *session) lastCallers() error {
 	if err != nil {
 		return err
 	}
-	s.printf("\n%s %s %s %s\n", colDim, term.Pad("Handle", 20), term.Pad("When", 12), "How")
+	heading := fmt.Sprintf("%s %s %s", term.Pad("Handle", 20), term.Pad("When", 12), "How")
+	rows := make([]string, 0, len(events))
 	for _, e := range events {
-		s.printf(" %s%s %s%s %s%s\n",
+		rows = append(rows, fmt.Sprintf("%s%s %s%s %s%s",
 			colHandle, safe(term.Pad(e.Handle, 20)),
 			colInfo, term.Pad(ago(e.At), 12),
-			colDim, safe(e.Detail))
+			colDim, safe(e.Detail)))
 	}
-	s.print("\n")
+	if err := s.table("Recent calls", heading, rows, "Nobody has called yet."); err != nil {
+		return err
+	}
 	return s.pause()
 }
 
@@ -223,13 +236,17 @@ func (s *session) compactUserList() error {
 	if err != nil {
 		return err
 	}
+	colW := s.inner(s.width()) / userColumns
+	var rows []string
+	line := ""
 	for i, u := range users {
-		s.printf("%s%s", colHandle, safe(term.Pad(u.Handle, maxScreenWidth/userColumns-1)))
+		line += colHandle + safe(term.Pad(u.Handle, colW))
 		if (i+1)%userColumns == 0 || i == len(users)-1 {
-			s.print("\n")
+			rows = append(rows, line)
+			line = ""
 		}
 	}
-	s.print(colLabel)
+	s.box("Members", rows...)
 	return nil
 }
 
@@ -250,4 +267,22 @@ func userFacing(err error) bool {
 		errors.Is(err, store.ErrBlocked) ||
 		errors.Is(err, store.ErrForbidden) ||
 		errors.Is(err, store.ErrNotValidated)
+}
+
+// statusStrip is the one-line summary under the main menu's title:
+// what's new and who's around.
+func (s *session) statusStrip(c mainMenuCounts) string {
+	part := func(n int, word, color string) string {
+		if n == 0 {
+			return colDim + "no " + word + "s"
+		}
+		return color + plural(n, word)
+	}
+	parts := []string{
+		part(c.unreadMail, "new message", colAlert),
+		part(c.newPosts, "new post", colAlert),
+		colInfo + fmt.Sprintf("%d online", c.online),
+		colInfo + plural(c.members, "member"),
+	}
+	return " " + strings.Join(parts, colBorder+"  ·  ")
 }

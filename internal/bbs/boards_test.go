@@ -55,7 +55,7 @@ func TestBoardsPostReplyAndNewScan(t *testing.T) {
 	b.writeBody("14.4k forever")
 	b.expect("Posted to General.")
 	b.key(" ")
-	b.expect("[Q]uit")
+	b.expect("[Q] Quit")
 	b.key("Q")
 	b.expect("Board #")
 
@@ -73,11 +73,11 @@ func TestBoardsPostReplyAndNewScan(t *testing.T) {
 	a.expect("Read #")
 	a.line("2")
 	a.expect("14.4k forever")
-	a.expect("[M]ail author")
+	a.expect("[M] Mail author")
 	a.key("D") // not offered: ignored
 	a.key("P")
 	a.expect("56k or bust")
-	a.expect("[D]elete")
+	a.expect("[D] Delete")
 	a.key("D")
 	a.expect("Delete this post for everyone?")
 	a.key("Y")

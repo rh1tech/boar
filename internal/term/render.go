@@ -26,16 +26,34 @@ const (
 // dosToANSI maps DOS color order (blue=1, red=4) to ANSI order (red=1, blue=4).
 var dosToANSI = [8]int{0, 4, 2, 6, 1, 5, 3, 7}
 
+// ColorMode is how colors are sent to a terminal.
+type ColorMode int
+
+const (
+	NoColor ColorMode = iota
+	// ANSI16 is the classic BBS encoding: 8 colors, bright via bold. CP437
+	// clients such as SyncTERM expect it.
+	ANSI16
+	// ANSI256 sends the exact VGA palette as 256-color codes. Modern
+	// terminals draw "bold black" as black and plain yellow as olive, so the
+	// classic encoding loses dark gray and brown there.
+	ANSI256
+)
+
+// vga256 maps the 16 DOS colors to the closest xterm-256 palette entries.
+var vga256 = [16]int{16, 19, 34, 37, 124, 127, 130, 248, 240, 63, 83, 87, 203, 207, 227, 231}
+
 // Renderer expands pipe codes into ANSI escape sequences, or strips them when
 // color is off. It remembers the active colors so that changing only the
 // foreground keeps the current background.
 type Renderer struct {
+	mode   ColorMode
 	color  bool
 	fg, bg int
 }
 
-func NewRenderer(color bool) *Renderer {
-	return &Renderer{color: color, fg: defaultFG, bg: defaultBG}
+func NewRenderer(mode ColorMode) *Renderer {
+	return &Renderer{mode: mode, color: mode != NoColor, fg: defaultFG, bg: defaultBG}
 }
 
 // Render expands every pipe code in s.
@@ -102,6 +120,13 @@ func (r *Renderer) code(c string) (string, bool) {
 }
 
 func (r *Renderer) sgr() string {
+	if r.mode == ANSI256 {
+		bg := "49" // black background means the terminal's own background
+		if r.bg != 0 {
+			bg = fmt.Sprintf("48;5;%d", vga256[r.bg])
+		}
+		return fmt.Sprintf("\x1b[0;38;5;%d;%sm", vga256[r.fg], bg)
+	}
 	bold := ""
 	if r.fg >= 8 {
 		bold = "1;"
@@ -117,5 +142,45 @@ func Escape(s string) string {
 // VisibleLen is the number of screen columns s occupies once its pipe codes
 // are rendered (one per rune; |CL counts as a line break).
 func VisibleLen(s string) int {
-	return utf8.RuneCountInString(NewRenderer(false).Render(s))
+	return utf8.RuneCountInString(NewRenderer(NoColor).Render(s))
+}
+
+// TruncateVisible cuts a pipe-coded string to at most n visible columns,
+// keeping its color codes.
+func TruncateVisible(s string, n int) string {
+	var b strings.Builder
+	visible := 0
+	for i := 0; i < len(s); {
+		switch {
+		case s[i] == '|' && i+1 < len(s) && s[i+1] == '|':
+			if visible == n {
+				return b.String()
+			}
+			b.WriteString("||")
+			visible++
+			i += 2
+		case s[i] == '|' && i+2 < len(s) && isCode(s[i+1:i+3]):
+			b.WriteString(s[i : i+3])
+			i += 3
+		default:
+			if visible == n {
+				return b.String()
+			}
+			_, size := utf8.DecodeRuneInString(s[i:])
+			b.WriteString(s[i : i+size])
+			visible++
+			i += size
+		}
+	}
+	return b.String()
+}
+
+func isCode(c string) bool {
+	if c == "CL" || c == "RE" {
+		return true
+	}
+	if c[0] < '0' || c[0] > '9' || c[1] < '0' || c[1] > '9' {
+		return false
+	}
+	return (c[0]-'0')*10+(c[1]-'0') <= 23
 }

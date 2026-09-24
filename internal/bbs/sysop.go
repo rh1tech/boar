@@ -53,7 +53,7 @@ func (s *session) sysopMenu() error {
 			{'O', "Oneliner wall", ""},
 			{'A', "Custom art", colDim + "(preview)"},
 		})
-		s.print("\n   " + menuItem{'Q', "Back to main menu", ""}.render() + "\n")
+		s.print("\n" + s.keyBar([]menuItem{{'Q', "Back to main menu", ""}}) + "\n")
 		k, err := s.menuPrompt("Sysop", "VUKBEMNOAQ")
 		if err != nil {
 			return err
@@ -88,7 +88,9 @@ func (s *session) sysopMenu() error {
 
 func (s *session) sysopKick() error {
 	s.header("Kick a Node")
-	s.print("\n" + s.whoTable())
+	if err := s.showWho(); err != nil {
+		return err
+	}
 	ans, err := s.prompt("\n|07Node # |08(Enter = cancel)|07: |15", 4)
 	if err != nil || ans == "" {
 		return err
@@ -132,7 +134,8 @@ func (s *session) sysopEventLog() error {
 	if err != nil {
 		return err
 	}
-	lines := []string{fmt.Sprintf("%s%s %s %s From", colDim, term.Pad("When", 12), term.Pad("What", 13), term.Pad("Who", 16))}
+	heading := fmt.Sprintf("%s %s %s From", term.Pad("When", 12), term.Pad("What", 13), term.Pad("Who", 16))
+	var lines []string
 	for _, e := range events {
 		color := colLabel
 		switch e.Kind {
@@ -147,11 +150,10 @@ func (s *session) sysopEventLog() error {
 			colHandle, safe(term.Pad(e.Handle, 16)),
 			colDim, safe(e.IP)))
 		if e.Detail != "" {
-			lines = append(lines, fmt.Sprintf("%s%13s%s", colLabel, "", safe(term.Truncate(e.Detail, s.width()-14))))
+			lines = append(lines, fmt.Sprintf("%s%13s%s", colDim, "", safe(term.Truncate(e.Detail, s.inner(s.width())-13))))
 		}
 	}
-	s.print("\n")
-	if _, err := s.page(lines, 4); err != nil {
+	if err := s.table("Newest first", heading, lines, "Nothing has happened yet."); err != nil {
 		return err
 	}
 	return s.pause()
@@ -164,17 +166,24 @@ func (s *session) sysopBoards() error {
 			return err
 		}
 		s.header("Manage Boards")
-		s.print("\n")
+		rows := make([]string, 0, len(boards))
 		for i, b := range boards {
-			who := ""
+			who := colDim + "everyone"
 			if b.SysopOnly {
-				who = colSysop + " (sysop posts only)"
+				who = colSysop + "sysops only"
 			}
-			s.printf("%s%4d  %s%s %s%s%s\n", colValue, i+1, colHandle, safe(term.Pad(b.Name, 22)),
-				colDim, plural(b.Posts, "post"), who)
+			rows = append(rows, fmt.Sprintf("%s%4d  %s%s %s%s %s", colValue, i+1, colHandle, safe(term.Pad(b.Name, 24)),
+				colLabel, term.Pad(plural(b.Posts, "post"), 12), who))
 		}
-		s.print("\n" + actions("Create", "Delete", "Quit") + " |08» |15")
-		k, err := s.choose("CDQ")
+		heading := fmt.Sprintf("%4s  %s %s %s", "#", term.Pad("Board", 24), term.Pad("Posts", 12), "Who posts")
+		if err := s.table(plural(len(boards), "board"), heading, rows, "No boards yet. Press C to create one."); err != nil {
+			return err
+		}
+		words := []string{"Create", "Delete", "Quit"}
+		if len(boards) == 0 {
+			words = []string{"Create", "Quit"}
+		}
+		k, err := s.actionPrompt("", words...)
 		if err != nil || k == 'Q' {
 			return err
 		}
@@ -237,12 +246,14 @@ func (s *session) sysopNews() error {
 			return err
 		}
 		s.header("Manage News")
-		s.print("\n")
-		for i, b := range bulletins {
-			s.printf("%s%4d  %s%s %s%s\n", colValue, i+1, colInfo, term.Pad(shortDate(b.PostedAt), 7), colBright, safe(b.Title))
+		if err := s.bulletinTable(bulletins, "No bulletins yet. Press A to post the first one."); err != nil {
+			return err
 		}
-		s.print("\n" + actions("Add", "Delete", "Quit") + " |08» |15")
-		k, err := s.choose("ADQ")
+		words := []string{"Add", "Delete", "Quit"}
+		if len(bulletins) == 0 {
+			words = []string{"Add", "Quit"}
+		}
+		k, err := s.actionPrompt("", words...)
 		if err != nil || k == 'Q' {
 			return err
 		}
@@ -298,13 +309,15 @@ func (s *session) sysopOneliners() error {
 			return err
 		}
 		s.header("Manage Oneliners")
-		s.print("\n")
-		if len(lines) == 0 {
-			s.printf("  %sThe wall is empty.\n\n", colDim)
-			return s.pause()
-		}
+		rows := make([]string, 0, len(lines))
 		for i, o := range lines {
-			s.printf("%s%4d  %s%s %s%s\n", colValue, i+1, colHandle, safe(term.Pad(o.Author, onelinerAuthorPad)), colLabel, safe(o.Text))
+			rows = append(rows, fmt.Sprintf("%s%4d  %s%s %s%s", colValue, i+1, colHandle, safe(term.Pad(o.Author, onelinerAuthorPad)), colLabel, safe(o.Text)))
+		}
+		if err := s.table("The wall", "", rows, "The wall is empty."); err != nil {
+			return err
+		}
+		if len(lines) == 0 {
+			return s.pause()
 		}
 		n, ok, err := s.pickNumber(len(lines), "Delete oneliner")
 		if err != nil || !ok {

@@ -160,7 +160,7 @@ func TestSSHLoginSkipsTerminalQuestion(t *testing.T) {
 	c.expect("] Main")
 	c.send("W")
 	c.expect("Alice")
-	c.expect(". = connected over SSH")
+	c.expect(". connected over SSH")
 
 	logins := must(st.Events(store.EventLogin, 1))
 	if len(logins) != 1 || !strings.Contains(logins[0].Detail, "via ssh") {
@@ -213,18 +213,19 @@ func TestDetectCharset(t *testing.T) {
 	cases := []struct {
 		termType string
 		cs       term.Charset
-		color    bool
+		mode     term.ColorMode
 		ok       bool
 	}{
-		{"xterm-256color", term.UTF8, true, true},
-		{"syncterm", term.CP437, true, true},
-		{"dumb", term.ASCII, false, true},
-		{"", 0, false, false},
+		{"xterm-256color", term.UTF8, term.ANSI256, true},
+		{"linux", term.UTF8, term.ANSI16, true},
+		{"syncterm", term.CP437, term.ANSI16, true},
+		{"dumb", term.ASCII, term.NoColor, true},
+		{"", 0, term.NoColor, false},
 	}
 	for _, c := range cases {
-		cs, color, ok := detectCharset(c.termType)
-		if cs != c.cs || color != c.color || ok != c.ok {
-			t.Errorf("detectCharset(%q) = %v %v %v", c.termType, cs, color, ok)
+		cs, mode, ok := detectCharset(c.termType)
+		if cs != c.cs || mode != c.mode || ok != c.ok {
+			t.Errorf("detectCharset(%q) = %v %v %v", c.termType, cs, mode, ok)
 		}
 	}
 }

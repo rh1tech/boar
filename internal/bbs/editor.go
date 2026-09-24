@@ -14,8 +14,10 @@ const (
 	editorGutter   = 5 // "123: "
 )
 
-const editorHelp = "|08Type your message. Lines wrap by themselves. On an empty line type:\n" +
-	"  |15/S|08 send   |15/A|08 abort   |15/L|08 list   |15/D|08 delete last line   |15/C|08 clear   |15/?|08 help|07\n"
+var editorHelp = []string{
+	"|07Type your message. Lines wrap by themselves. On an empty line type:",
+	"|15/S|08 send   |15/A|08 abort   |15/L|08 list   |15/D|08 delete last line   |15/C|08 clear   |15/?|08 help",
+}
 
 func editorWidth(screen int) int { return min(screen-editorGutter, maxEditorWidth) }
 
@@ -23,12 +25,12 @@ func editorWidth(screen int) int { return min(screen-editorGutter, maxEditorWidt
 func (s *session) editor(initial []string) (string, bool, error) {
 	width := editorWidth(s.width())
 	lines := slices.Clone(initial)
-	s.print("\n" + editorHelp + s.rule() + "\n")
+	s.box("Editor", editorHelp...)
 	s.listEditorLines(lines)
 
 	var carry []rune
 	for {
-		s.printf("%s%3d:%s ", colDim, len(lines)+1, colLabel)
+		s.printf(" %s%3d:%s ", colBorder, len(lines)+1, colLabel)
 		line, next, err := s.readLine(lineOpts{max: width, wrap: true, init: carry})
 		if err != nil {
 			return "", false, err
@@ -86,14 +88,14 @@ func (s *session) editorAction(cmd rune, lines []string) (done, keep bool, out [
 			lines = nil
 		}
 	default:
-		s.print(editorHelp)
+		s.box("Editor", editorHelp...)
 	}
 	return false, false, lines, nil
 }
 
 func (s *session) listEditorLines(lines []string) {
 	for i, ln := range lines {
-		s.printf("%s%3d:%s %s\n", colDim, i+1, colLabel, safe(ln))
+		s.printf(" %s%3d:%s %s\n", colBorder, i+1, colLabel, safe(ln))
 	}
 }
 

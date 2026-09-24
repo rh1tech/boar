@@ -20,7 +20,8 @@ func (s *session) boardsMenu() error {
 			return err
 		}
 		s.header("Message Boards")
-		s.printf("\n%s%4s  %s %s %s\n", colDim, "#", term.Pad("Board", 22), term.Pad("Posts", 12), "About")
+		heading := fmt.Sprintf("%4s  %s %s %s", "#", term.Pad("Board", 22), term.Pad("Posts", 12), "About")
+		var rows []string
 		totalNew := 0
 		for i, b := range boards {
 			totalNew += b.New
@@ -32,12 +33,15 @@ func (s *session) boardsMenu() error {
 			if b.SysopOnly {
 				lock = colSysop + "*"
 			}
-			s.printf("%s%4d %s%s%s %s %s%s\n", colValue, i+1, lock, colHandle, safe(term.Pad(b.Name, 22)),
-				padVisible(colLabel+count, 12), colDim, safe(b.Description))
+			rows = append(rows, fmt.Sprintf("%s%4d %s%s%s %s %s%s", colValue, i+1, lock, colHandle, safe(term.Pad(b.Name, 22)),
+				fit(colLabel+count, 12), colDim, safe(b.Description)))
 		}
-		s.printf("\n %s*%s = only the sysop posts here\n", colSysop, colDim)
+		if err := s.table(plural(len(boards), "board"), heading, rows, "No boards yet."); err != nil {
+			return err
+		}
+		s.printf(" %s*%s only the sysop posts here\n", colSysop, colDim)
 
-		ans, err := s.prompt(fmt.Sprintf("\n|07Board # |08(|15N|08 = read all %d new, Enter = back)|07: |15", totalNew), 4)
+		ans, err := s.prompt(fmt.Sprintf("\n |07Board # |08(|15N|08 = read all %d new, Enter = back) %s» |15", totalNew, colBorder), 4)
 		if err != nil || ans == "" {
 			return err
 		}
@@ -74,18 +78,15 @@ func (s *session) boardView(b store.Board) error {
 			return err
 		}
 		s.header(b.Name)
+		title := b.Name
 		if b.Description != "" {
-			s.printf("%s %s\n", colDim, safe(b.Description))
+			title += " · " + b.Description
 		}
-		if len(posts) == 0 {
-			s.printf("\n  %sNo posts yet. Be the first!\n", colDim)
-		} else {
-			s.print("\n")
-			if _, err := s.page(s.postListing(posts, lastRead), listHeadRows+1); err != nil {
-				return err
-			}
+		rows := s.postListing(posts, lastRead)
+		if err := s.table(title, rows[0], rows[1:], "No posts yet. Be the first: press P."); err != nil {
+			return err
 		}
-		ans, err := s.prompt("\n|07Read # |08(|15P|08 = new post, |15N|08 = next unread, Enter = back)|07: |15", 4)
+		ans, err := s.prompt(fmt.Sprintf("\n |07Read # |08(|15P|08 = new post, |15N|08 = next unread, Enter = back) %s» |15", colBorder), 4)
 		if err != nil || ans == "" {
 			return err
 		}
@@ -120,7 +121,7 @@ func unreadPosts(posts []store.Post, lastRead, me int64) []store.Post {
 }
 
 func (s *session) postListing(posts []store.Post, lastRead int64) []string {
-	subjW := max(s.width()-33, 10)
+	subjW := max(s.inner(s.width())-32, 10)
 	rows := []string{fmt.Sprintf("%s%4s    %s %s Date", colDim, "#", term.Pad("Author", 16), term.Pad("Subject", subjW))}
 	for i, p := range posts {
 		mark, subjColor := "    ", colLabel
@@ -209,7 +210,7 @@ func (s *session) readPostsWith(b store.Board, posts []store.Post, idx int, onQu
 			words = append(words, "Delete")
 		}
 		words = append(words, "Quit")
-		s.print("\n" + actions(words...) + " |08» |15")
+		s.print("\n" + s.actions(words...) + " " + colBorder + "» |15")
 		k, err := s.choose(keysOf(words...) + "\r")
 		if err != nil {
 			return err

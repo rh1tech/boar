@@ -20,7 +20,9 @@ const (
 func (s *session) pageSomeone() error {
 	s.setActivity("Paging")
 	s.header("Page Someone")
-	s.print("\n" + s.whoTable() + "\n")
+	if err := s.showWho(); err != nil {
+		return err
+	}
 	target, err := s.prompt("|07Page who |08(handle or node #, Enter = cancel)|07: |15", store.MaxHandleLen)
 	if err != nil || target == "" {
 		return err
@@ -79,13 +81,11 @@ func (s *session) news() error {
 			return err
 		}
 		s.header("News")
-		if len(bulletins) == 0 {
-			s.printf("\n  %sNo news is good news.\n\n", colDim)
-			return s.pause()
+		if err := s.bulletinTable(bulletins, "No news is good news."); err != nil {
+			return err
 		}
-		s.print("\n")
-		for i, b := range bulletins {
-			s.printf("%s%4d  %s%s %s%s\n", colValue, i+1, colInfo, term.Pad(shortDate(b.PostedAt), 7), colBright, safe(b.Title))
+		if len(bulletins) == 0 {
+			return s.pause()
 		}
 		n, ok, err := s.pickNumber(len(bulletins), "Read bulletin")
 		if err != nil || !ok {
@@ -118,16 +118,17 @@ func (s *session) onelinerWall(atLogin bool) error {
 		return err
 	}
 	s.header("Oneliner Wall")
-	s.print("\n")
-	if len(lines) == 0 {
-		s.printf("  %sThe wall is empty. Leave the first mark!\n", colDim)
-	}
+	rows := make([]string, 0, len(lines))
 	for _, o := range lines {
 		author := o.Author
 		if author == "" {
 			author = "(gone)"
 		}
-		s.printf(" %s%s %s%s %s\n", colHandle, safe(term.Pad(author, onelinerAuthorPad)), colDim, "│", colLabel+safe(o.Text))
+		rows = append(rows, fmt.Sprintf("%s%s %s%s %s", colHandle, safe(term.Pad(author, onelinerAuthorPad)),
+			colBorder, sV, colLabel+safe(o.Text)))
+	}
+	if err := s.table("What callers are saying", "", rows, "The wall is empty. Leave the first mark!"); err != nil {
+		return err
 	}
 	s.print("\n")
 	if !s.user.Validated {
@@ -141,7 +142,7 @@ func (s *session) onelinerWall(atLogin bool) error {
 		s.printf("%sYou've written on the wall enough for now.\n", colAlert)
 		return s.pause()
 	}
-	text, err := s.prompt(fmt.Sprintf("%s> %s", colDim, colBright), store.MaxOnelinerLen)
+	text, err := s.prompt(fmt.Sprintf(" %s» %s", colBorder, colBright), store.MaxOnelinerLen)
 	if err != nil || text == "" {
 		return err
 	}
@@ -150,4 +151,15 @@ func (s *session) onelinerWall(atLogin bool) error {
 	}
 	s.srv.limit.oneliners.hit(userKey(s.user.ID))
 	return nil
+}
+
+// bulletinTable lists bulletins, newest first, in a panel.
+func (s *session) bulletinTable(bulletins []store.Bulletin, empty string) error {
+	rows := make([]string, 0, len(bulletins))
+	for i, b := range bulletins {
+		rows = append(rows, fmt.Sprintf("%s%4d  %s%s %s%s %s%s", colValue, i+1, colInfo, term.Pad(shortDate(b.PostedAt), 7),
+			colBright, safe(term.Pad(b.Title, 45)), colDim, safe(s.handleOf(b.AuthorID))))
+	}
+	heading := fmt.Sprintf("%4s  %s %s %s", "#", term.Pad("Date", 7), term.Pad("Title", 45), "By")
+	return s.table(plural(len(bulletins), "bulletin"), heading, rows, empty)
 }

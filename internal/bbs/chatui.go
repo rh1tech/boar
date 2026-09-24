@@ -11,7 +11,7 @@ import (
 	"boar/internal/term"
 )
 
-const chatHelp = "|08Commands: |15/me|08 action · |15/who|08 · |15/rooms|08 · |15/join|08 name · |15/q|08 quit\n"
+const chatHelp = "|08Commands: |15/me|08 action · |15/who|08 · |15/rooms|08 · |15/join|08 name · |15/q|08 quit"
 
 // chatScreen owns the terminal while in chat. Incoming lines arrive on
 // another goroutine, so every write goes through mu: an incoming line erases
@@ -22,6 +22,7 @@ type chatScreen struct {
 	rend   *term.Renderer
 	buf    []rune
 	prompt string
+	shown  bool // the prompt is on screen
 	werr   error
 }
 
@@ -46,13 +47,17 @@ func (c *chatScreen) show(line string) {
 	}
 	c.emit(line + "|RE\n" + c.prompt)
 	c.emit(term.Escape(string(c.buf)))
+	c.shown = true
 }
 
 // readLine edits the input line under mu so incoming lines can redraw it.
 func (c *chatScreen) readLine() (string, error) {
 	c.mu.Lock()
 	c.buf = c.buf[:0]
-	c.emit(c.prompt)
+	if !c.shown {
+		c.emit(c.prompt)
+		c.shown = true
+	}
 	c.mu.Unlock()
 	for {
 		r, err := c.s.readRune()
@@ -64,6 +69,7 @@ func (c *chatScreen) readLine() (string, error) {
 		case r == keyEnter:
 			line := string(c.buf)
 			c.buf = c.buf[:0]
+			c.shown = false
 			if c.s.color {
 				c.emit("\r\x1b[K")
 			} else {
@@ -97,8 +103,8 @@ func (s *session) chatRoom() error {
 	}
 
 	s.header("Chat")
-	s.print("\n" + chatHelp + s.rule() + "\n")
-	c := &chatScreen{s: s, rend: term.NewRenderer(s.color), prompt: colDim + "> " + colLabel}
+	s.box("Teleconference", colLabel+"Say something and press Enter. Everyone in the room sees it.", chatHelp)
+	c := &chatScreen{s: s, rend: term.NewRenderer(s.mode), prompt: colTitle + "» " + colLabel}
 	m := newChatMember(s.user.ID, s.user.Handle, blocked)
 
 	done := make(chan struct{})
@@ -109,7 +115,7 @@ func (s *session) chatRoom() error {
 		s.srv.chat.leave(m)
 		close(done)
 		wg.Wait()
-		s.rend = term.NewRenderer(s.color) // colors on screen changed under us
+		s.rend = term.NewRenderer(s.mode) // colors on screen changed under us
 	}()
 
 	for {

@@ -2,6 +2,7 @@ package bbs
 
 import (
 	"crypto/rsa"
+	"fmt"
 	"strconv"
 	"strings"
 
@@ -45,16 +46,23 @@ func (s *session) manageSSHKeys() error {
 			return err
 		}
 		s.header("SSH Keys")
-		s.printf("\n  %sWith a key here, ssh -p <port> bbs@<host> signs you in without a\n  password. Paste the %scontents of ~/.ssh/id_ed25519.pub%s (never the private key).\n\n",
-			colDim, colLabel, colDim)
+		lines := []string{
+			colDim + "With a key here, ssh signs you in without a password. Paste the",
+			colDim + "contents of " + colLabel + "~/.ssh/id_ed25519.pub" + colDim + " (never the private key).",
+			separator,
+		}
 		if len(keys) == 0 {
-			s.printf("  %sNo keys yet.\n", colLabel)
+			lines = append(lines, colLabel+"No keys yet.")
 		}
 		for i, k := range keys {
-			s.printf("%s%4d  %s%s %s%s\n", colValue, i+1, colLabel, safe(k.Fingerprint), colDim, safe(k.Comment))
+			lines = append(lines, fmt.Sprintf("%s%d  %s%s %s%s", colValue, i+1, colLabel, safe(k.Fingerprint), colDim, safe(k.Comment)))
 		}
-		s.print("\n" + actions("Add", "Remove", "Quit") + " |08» |15")
-		c, err := s.choose("ARQ")
+		s.box(fmt.Sprintf("Your keys (%d of %d)", len(keys), store.MaxSSHKeys), lines...)
+		words := []string{"Add", "Remove", "Quit"}
+		if len(keys) == 0 {
+			words = []string{"Add", "Quit"}
+		}
+		c, err := s.actionPrompt("", words...)
 		if err != nil || c == 'Q' {
 			return err
 		}

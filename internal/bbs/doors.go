@@ -40,17 +40,18 @@ func (s *session) doorsMenu() error {
 	for {
 		s.setActivity("Door games")
 		list := s.visibleDoors()
-		s.header("Doors")
-		if len(list) == 0 {
-			s.printf("\n  %sNo doors are open today.\n\n", colDim)
-			return s.pause()
-		}
-		s.print("\n")
+		s.header("Door Games")
+		rows := make([]string, 0, len(list))
 		for i, d := range list {
-			s.printf("%s%4d  %s%s\n", colValue, i+1, colHandle, safe(d.Name))
-			if d.Description != "" {
-				s.printf("        %s%s\n", colDim, safe(d.Description))
-			}
+			rows = append(rows, fmt.Sprintf("%s%4d  %s%s %s%s %s%d min", colValue, i+1, colHandle, safe(term.Pad(d.Name, 26)),
+				colLabel, safe(term.Pad(d.Description, 34)), colDim, d.MaxMinutes))
+		}
+		heading := fmt.Sprintf("%4s  %s %s %s", "#", term.Pad("Door", 26), term.Pad("About", 34), "Limit")
+		if err := s.table("Doors", heading, rows, "No doors are open today."); err != nil {
+			return err
+		}
+		if len(list) == 0 {
+			return s.pause()
 		}
 		n, ok, err := s.pickNumber(len(list), "Open door")
 		if err != nil || !ok {
@@ -114,7 +115,7 @@ func (s *session) runDoor(d doors.Door) error {
 	if stderr := p.Stderr(); stderr != "" {
 		s.srv.log.Debug("door stderr", "door", d.Key, "stderr", stderr)
 	}
-	s.rend = term.NewRenderer(s.color) // the door left the screen in its own state
+	s.rend = term.NewRenderer(s.mode) // the door left the screen in its own state
 	if bridgeErr != nil {
 		return bridgeErr // the caller hung up
 	}

@@ -90,12 +90,15 @@ func (s *session) emailSettings() error {
 		if s.user.Email != "" {
 			address = colBright + safe(s.user.Email) + colOK + "  (verified)"
 		}
-		s.printf("\n  %sAddress  %s: %s\n", colInfo, colDim, address)
+		lines := []string{fmt.Sprintf("%sAddress  %s: %s", colInfo, colBorder, address)}
 		if hasPending {
-			s.printf("  %sWaiting  %s: %s%s %s(check your inbox for the code)\n", colInfo, colDim, colValue, safe(pending), colDim)
+			lines = append(lines, fmt.Sprintf("%sWaiting  %s: %s%s %s(check your inbox for the code)", colInfo, colBorder, colValue, safe(pending), colDim))
 		}
-		s.printf("  %sNew mail %s: %s%s\n", colInfo, colDim, colLabel, s.user.EmailMode)
-		s.printf("\n  %sWe only email you, and only about mail sent to you here. Nothing is shown\n  to other callers.\n", colDim)
+		lines = append(lines, fmt.Sprintf("%sNew mail %s: %s%s", colInfo, colBorder, colLabel, s.user.EmailMode),
+			separator,
+			colDim+"We only email you, and only about mail sent to you here.",
+			colDim+"Other callers never see your address.")
+		s.box("Email", lines...)
 
 		words := []string{"Set address"}
 		if hasPending {
@@ -105,7 +108,7 @@ func (s *session) emailSettings() error {
 			words = append(words, "New-mail email", "Remove address")
 		}
 		words = append(words, "Quit")
-		s.print("\n" + actions(words...) + " |08» |15")
+		s.print("\n" + s.actions(words...) + " " + colBorder + "» |15")
 		k, err := s.choose(keysOf(words...))
 		if err != nil || k == 'Q' {
 			return err

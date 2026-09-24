@@ -29,7 +29,7 @@ func pipeSession(t *testing.T, cs term.Charset, input string) (*session, func() 
 	}()
 	go func() { _, _ = client.Write([]byte(input)) }()
 	s := newSession(&Server{}, telnet.New(server, time.Second), &node{}, "test", false)
-	s.setTerminal(cs, false)
+	s.setTerminal(cs, term.NoColor)
 	return s, func() string {
 		server.Close()
 		return <-out

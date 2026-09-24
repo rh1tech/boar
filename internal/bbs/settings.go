@@ -20,13 +20,15 @@ func (s *session) settings() error {
 		if err != nil {
 			return err
 		}
-		s.item('P', "Change password", "")
-		s.item('L', "Location", colDim+"("+safe(loc)+")")
-		s.item('T', "Terminal", colDim+"("+s.terminalName()+")")
-		s.item('B', "Blocked callers", colDim+"("+plural(len(blocked), "caller")+")")
-		s.item('E', "Email", colDim+"("+s.emailNote()+")")
-		s.item('K', "SSH keys", colDim+"(sign in without a password)")
-		s.item('Q', "Back to main menu", "")
+		s.menu("Your account", []menuItem{
+			{'P', "Change password", ""},
+			{'L', "Location", colDim+"("+safe(loc)+")"},
+			{'T', "Terminal", colDim+"("+s.terminalName()+")"},
+			{'B', "Blocked callers", colDim+"("+plural(len(blocked), "caller")+")"},
+			{'E', "Email", colDim+"("+s.emailNote()+")"},
+			{'K', "SSH keys", colDim+"(sign in without a password)"},
+			{'Q', "Back to main menu", ""},
+		})
 
 		k, err := s.menuPrompt("Settings", "PLTBEKQ")
 		if err != nil {
@@ -116,19 +118,19 @@ func (s *session) manageBlocks() error {
 		if err != nil {
 			return err
 		}
-		s.printf("\n  %sBlocked callers can't mail or page you, and you won't see them in chat.\n\n", colDim)
+		lines := []string{colDim + "Blocked callers can't mail or page you, and you won't see them in chat.", separator}
 		if len(blocked) == 0 {
-			s.printf("  %sNobody is blocked.\n", colLabel)
+			lines = append(lines, colLabel+"Nobody is blocked.")
 		}
 		for _, u := range blocked {
-			s.printf("  %s%s\n", colHandle, safe(u.Handle))
+			lines = append(lines, colHandle+safe(u.Handle))
 		}
-		s.print("\n   " + actions("Block", "Unblock", "Quit") + " |08» |15")
-		k, err := s.choose("BUQ")
+		s.box("Blocked", lines...)
+		k, err := s.actionPrompt("", "Block", "Unblock", "Quit")
 		if err != nil || k == 'Q' {
 			return err
 		}
-		h, err := s.prompt("|07Handle|08: |15", store.MaxHandleLen)
+		h, err := s.prompt(" |07Handle|08: |15", store.MaxHandleLen)
 		if err != nil || h == "" {
 			if err != nil {
 				return err

@@ -266,7 +266,7 @@ func TestSendAndReadMail(t *testing.T) {
 	a.expect("Subj : Hello there")
 	a.expect("Hi Alice!")
 	a.expect("Second line.")
-	a.expect("[Q]uit")
+	a.expect("[Q] Quit")
 	a.key("Q")
 	a.skipWall()
 
@@ -280,7 +280,7 @@ func TestSendAndReadMail(t *testing.T) {
 	a.key("I")
 	a.expect("Read message (1-1")
 	a.line("1")
-	a.expect("[R]eply")
+	a.expect("[R] Reply")
 	a.key("R")
 	a.expect("Quote the original message?")
 	a.key("Y")
@@ -294,7 +294,7 @@ func TestSendAndReadMail(t *testing.T) {
 	a.expect("Message sent to Bob.")
 	a.expect("press any key")
 	a.key(" ")
-	a.expect("[D]elete")
+	a.expect("[D] Delete")
 	a.key("D")
 	a.expect("Delete this message?")
 	a.key("Y")
@@ -396,7 +396,7 @@ func TestUTF8TerminalGetsColorAndBoxDrawing(t *testing.T) {
 	c.line("")
 	c.expect("\x1b[2J")
 	c.expect("█")
-	c.expect("\x1b[0;1;33;40m")
+	c.expect("\x1b[0;38;5;227;49m")
 	c.expect("Handle")
 }
 

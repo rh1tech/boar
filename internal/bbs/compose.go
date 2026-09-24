@@ -13,7 +13,7 @@ const (
 	maxQuoteLines    = 20
 	maxRecipients    = 10
 	everyoneKeyword  = "all"
-	recipientPrompt  = "|03To |08(handles, comma separated · |15?|08 = list · Enter = cancel)|03: |15"
+	recipientPrompt  = " |03To      |08(handles, comma separated · |15?|08 = list · Enter = cancel)|08: |15"
 	maxRecipientLine = 200
 )
 
@@ -37,7 +37,7 @@ func (s *session) compose(d draft) error {
 		}
 		to = picked
 	} else {
-		s.printf("%sTo      %s: %s%s\n", colInfo, colDim, colBright, safe(handles(to)))
+		s.printf(" %sTo      %s: %s%s\n", colInfo, colDim, colBright, safe(handles(to)))
 	}
 	subject, err := s.askSubject(d.subject)
 	if err != nil {
@@ -181,9 +181,9 @@ func (s *session) resolveRecipients(line string) ([]store.User, string, error) {
 
 // askSubject returns def if the caller just presses Enter.
 func (s *session) askSubject(def string) (string, error) {
-	label := "|03Subject |08: |15"
+	label := " |03Subject |08: |15"
 	if def != "" {
-		label = fmt.Sprintf("|03Subject |08[|07%s|08]: |15", safe(def))
+		label = fmt.Sprintf(" |03Subject |08[|07%s|08]: |15", safe(def))
 	}
 	subj, err := s.prompt(label, store.MaxSubjectLen)
 	if subj == "" {

@@ -53,14 +53,17 @@ func (s *session) sysopApprovals() error {
 			return err
 		}
 		s.header("New Callers")
-		if len(pending) == 0 {
-			s.printf("\n  %sNobody is waiting for approval.\n\n", colDim)
-			return s.pause()
-		}
-		s.printf("\n%s%4s  %s %s %s\n", colDim, "#", term.Pad("Handle", 20), term.Pad("Location", 20), "Signed up")
+		rows := make([]string, 0, len(pending))
 		for i, u := range pending {
-			s.printf("%s%4d  %s%s %s%s %s%s\n", colValue, i+1, colHandle, safe(term.Pad(u.Handle, 20)),
-				colLabel, safe(term.Pad(u.Location, 20)), colInfo, ago(u.CreatedAt))
+			rows = append(rows, fmt.Sprintf("%s%4d  %s%s %s%s %s%s", colValue, i+1, colHandle, safe(term.Pad(u.Handle, 20)),
+				colLabel, safe(term.Pad(u.Location, 22)), colInfo, ago(u.CreatedAt)))
+		}
+		heading := fmt.Sprintf("%4s  %s %s %s", "#", term.Pad("Handle", 20), term.Pad("Location", 22), "Signed up")
+		if err := s.table("Waiting for approval", heading, rows, "Nobody is waiting for approval."); err != nil {
+			return err
+		}
+		if len(pending) == 0 {
+			return s.pause()
 		}
 		n, ok, err := s.pickNumber(len(pending), "Review caller")
 		if err != nil || !ok {
@@ -74,7 +77,7 @@ func (s *session) sysopApprovals() error {
 
 func (s *session) reviewCaller(u store.User) error {
 	s.showAccount(u)
-	s.print("\n" + actions("Approve", "Reject and delete", "Mail them", "Skip") + " |08» |15")
+	s.print("\n" + s.actions("Approve", "Reject and delete", "Mail them", "Skip") + " " + colBorder + "» |15")
 	k, err := s.choose("ARMS")
 	if err != nil || k == 'S' {
 		return err

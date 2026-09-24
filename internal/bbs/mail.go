@@ -41,12 +41,14 @@ func (s *session) mailMenu() error {
 		if unread > 0 {
 			newNote = fmt.Sprintf("%s(%d new)", colAlert, unread)
 		}
-		s.item('N', "Read new mail", newNote)
-		s.item('I', "Inbox", fmt.Sprintf("%s(%s)", colDim, plural(len(inbox), "message")))
-		s.item('S', "Send a message", "")
-		s.item('O', "Outbox", colDim+"(sent mail, read receipts)")
-		s.item('F', "Find", colDim+"(search your mail)")
-		s.item('Q', "Back to main menu", "")
+		s.menu("Mail", []menuItem{
+			{'N', "Read new mail", newNote},
+			{'I', "Inbox", fmt.Sprintf("%s(%s)", colDim, plural(len(inbox), "message"))},
+			{'S', "Send a message", ""},
+			{'O', "Outbox", colDim+"(sent mail, read receipts)"},
+			{'F', "Find", colDim+"(search your mail)"},
+			{'Q', "Back to main menu", ""},
+		})
 
 		k, err := s.menuPrompt("Mail", "NISOFQ")
 		if err != nil {
@@ -124,12 +126,17 @@ func (s *session) browseMail(title string, view mailView, load func() ([]store.M
 		}
 		s.header(title)
 		if len(msgs) == 0 {
-			s.printf("\n  %sNothing here yet.\n\n", colDim)
+			if err := s.table("Messages", "", nil, "Nothing here yet."); err != nil {
+				return err
+			}
 			return s.pause()
 		}
-		s.print("\n")
-		if _, err := s.page(s.mailListing(view, msgs), listHeadRows); err != nil {
+		rows := s.mailListing(view, msgs)
+		if err := s.table(plural(len(msgs), "message"), rows[0], rows[1:], ""); err != nil {
 			return err
+		}
+		if view == viewOutbox {
+			s.printf(" %s√%s read by the recipient\n", colOK, colDim)
 		}
 		n, ok, err := s.pickNumber(len(msgs), "Read message")
 		if err != nil || !ok {
@@ -144,7 +151,7 @@ func (s *session) browseMail(title string, view mailView, load func() ([]store.M
 // pickNumber asks for 1..max. ok is false when the caller just presses Enter.
 func (s *session) pickNumber(maxN int, what string) (int, bool, error) {
 	for {
-		ans, err := s.prompt(fmt.Sprintf("\n|07%s |08(1-%d, Enter = back)|07: |15", what, maxN), 4)
+		ans, err := s.prompt(fmt.Sprintf("\n |07%s |08(1-%d, Enter = back) %s» |15", what, maxN, colBorder), 4)
 		if err != nil || ans == "" {
 			return 0, false, err
 		}
@@ -164,7 +171,7 @@ func (s *session) mailListing(view mailView, msgs []store.Message) []string {
 	case viewMixed:
 		who = "With"
 	}
-	subjW := max(s.width()-33, 10)
+	subjW := max(s.inner(s.width())-32, 10)
 	rows := []string{fmt.Sprintf("%s%4s    %s %s Date", colDim, "#", term.Pad(who, 16), term.Pad("Subject", subjW))}
 	for i, m := range msgs {
 		sent := m.FromID == s.user.ID && m.ToID != s.user.ID
@@ -187,9 +194,6 @@ func (s *session) mailListing(view mailView, msgs []store.Message) []string {
 			colHandle, safe(term.Pad(dir+s.handleOf(other), 16)),
 			subjColor, safe(term.Pad(m.Subject, subjW)),
 			colInfo, shortDate(m.SentAt)))
-	}
-	if view == viewOutbox {
-		rows = append(rows, fmt.Sprintf("\n %s√%s = read by the recipient", colOK, colDim))
 	}
 	return rows
 }
@@ -215,7 +219,7 @@ func (s *session) readMail(title string, msgs []store.Message, idx int) error {
 		if s.srv.emailEnabled() {
 			words = append(words[:len(words)-1], "Email me", "Quit")
 		}
-		s.print("\n" + actions(words...) + " |08» |15")
+		s.print("\n" + s.actions(words...) + " " + colBorder + "» |15")
 		k, err := s.choose(keysOf(words...) + "\r")
 		if err != nil {
 			return err

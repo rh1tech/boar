@@ -1,6 +1,10 @@
 package bbs
 
-import "boar/internal/term"
+import (
+	"strings"
+
+	"boar/internal/term"
+)
 
 // Terminal is a caller's connection, whatever the transport. ReadByte is
 // called from one goroutine; Write and Close must be safe for concurrent use
@@ -32,18 +36,24 @@ func keyUserOf(t Terminal) int64 {
 	return 0
 }
 
-// detectCharset guesses the charset from a terminal type. ok is false when
-// the caller should be asked.
-func detectCharset(termType string) (cs term.Charset, color bool, ok bool) {
-	switch termType {
-	case "":
-		return 0, false, false
-	case "syncterm", "ansi-bbs", "pcansi", "ansi", "scoansi":
-		return term.CP437, true, true
-	case "dumb":
-		return term.ASCII, false, true
-	default: // xterm-256color, screen, tmux, vt100, linux ...
-		return term.UTF8, true, true
+// detectCharset guesses the charset and color mode from a terminal type.
+// ok is false when the caller should be asked.
+func detectCharset(termType string) (cs term.Charset, mode term.ColorMode, ok bool) {
+	switch {
+	case termType == "":
+		return 0, term.NoColor, false
+	case termType == "syncterm" || termType == "ansi-bbs" || termType == "pcansi" ||
+		termType == "ansi" || termType == "scoansi":
+		return term.CP437, term.ANSI16, true
+	case termType == "dumb":
+		return term.ASCII, term.NoColor, true
+	case strings.Contains(termType, "256color") || strings.Contains(termType, "direct") ||
+		strings.HasPrefix(termType, "xterm") || strings.HasPrefix(termType, "alacritty") ||
+		strings.HasPrefix(termType, "wezterm") || strings.HasPrefix(termType, "kitty") ||
+		termType == "tmux" || termType == "foot":
+		return term.UTF8, term.ANSI256, true
+	default: // linux console, vt100, screen: 16 colors
+		return term.UTF8, term.ANSI16, true
 	}
 }
 

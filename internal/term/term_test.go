@@ -44,7 +44,7 @@ func TestEncodeFallbacks(t *testing.T) {
 }
 
 func TestRenderColor(t *testing.T) {
-	r := NewRenderer(true)
+	r := NewRenderer(ANSI16)
 	got := r.Render("|14Hi|20!|03x")
 	want := "\x1b[0;1;33;40mHi\x1b[0;1;33;41m!\x1b[0;36;41mx"
 	if got != want {
@@ -53,7 +53,7 @@ func TestRenderColor(t *testing.T) {
 }
 
 func TestRenderPlainStripsCodes(t *testing.T) {
-	r := NewRenderer(false)
+	r := NewRenderer(NoColor)
 	cases := map[string]string{
 		"|14Hello|07 world": "Hello world",
 		"a||b":              "a|b",
@@ -72,7 +72,7 @@ func TestRenderPlainStripsCodes(t *testing.T) {
 
 func TestEscapeSurvivesRender(t *testing.T) {
 	evil := "|CL|04boom||"
-	got := NewRenderer(true).Render(Escape(evil))
+	got := NewRenderer(ANSI16).Render(Escape(evil))
 	if got != evil {
 		t.Fatalf("escaped text rendered as %q", got)
 	}
@@ -162,5 +162,26 @@ func TestTranscodeCP437(t *testing.T) {
 	}
 	if got := string(TranscodeCP437(in, ASCII)); got != "\x1b[1m#?!" {
 		t.Errorf("ASCII: %q", got)
+	}
+}
+
+func TestRender256UsesTheVGAPalette(t *testing.T) {
+	r := NewRenderer(ANSI256)
+	if got := r.Render("|08x|22|15y|16z"); got != "\x1b[0;38;5;240;49mx\x1b[0;38;5;240;48;5;130m\x1b[0;38;5;231;48;5;130my\x1b[0;38;5;231;49mz" {
+		t.Fatalf("got %q", got)
+	}
+}
+
+func TestTruncateVisible(t *testing.T) {
+	cases := map[string]string{
+		"|14abc|07def": "|14abc|07d",
+		"a||bcdef":     "a||bc",
+		"ab":           "ab",
+		"żółwik":       "żółw",
+	}
+	for in, want := range cases {
+		if got := TruncateVisible(in, 4); got != want {
+			t.Errorf("TruncateVisible(%q) = %q, want %q", in, got, want)
+		}
 	}
 }

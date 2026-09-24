@@ -132,7 +132,7 @@ func TestEditorCommandsOutboxAndReadReceipts(t *testing.T) {
 	c.expect("To   : Bob")
 	c.expect("Read : not yet")
 	c.expect("body text")
-	c.expect("[Q]uit")
+	c.expect("[Q] Quit")
 	c.key("Q")
 	c.expect("Read message (1-1")
 
@@ -143,7 +143,7 @@ func TestEditorCommandsOutboxAndReadReceipts(t *testing.T) {
 	}
 	c.line("1")
 	c.expect("Read : ")
-	c.expect("[Q]uit")
+	c.expect("[Q] Quit")
 	c.key("Q")
 	c.expect("Read message (1-1")
 	c.line("")
@@ -233,12 +233,12 @@ func TestBlockedCallerCannotMail(t *testing.T) {
 	a.key("S")
 	a.expect("(0 callers)")
 	a.key("B")
-	a.expect("[B]lock")
+	a.expect("[B] Block")
 	a.key("B")
 	a.expect("Handle:")
 	a.line("bob")
 	a.expect("Bob")
-	a.expect("[B]lock")
+	a.expect("[B] Block")
 	a.key("Q")
 	a.expect("(1 caller)")
 
@@ -259,7 +259,7 @@ func TestBlockedCallerCannotMail(t *testing.T) {
 
 	// Unblock and it goes through.
 	a.key("B")
-	a.expect("[B]lock")
+	a.expect("[B] Block")
 	a.key("U")
 	a.expect("Handle:")
 	a.line("bob")

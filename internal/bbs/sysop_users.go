@@ -39,12 +39,19 @@ func (s *session) sysopUser(id int64) error {
 		}
 		s.showAccount(u)
 		self := u.ID == s.user.ID
-		words := []string{"Mail", "Password reset"}
+		words := []string{"Mail", "Password"}
 		if !self {
-			words = append(words, "Lock/unlock", "Sysop on/off", "Delete")
+			lock, sysop := "Lock", "Sysop rights"
+			if u.Locked {
+				lock = "Lock off"
+			}
+			if u.Sysop {
+				sysop = "Sysop rights off"
+			}
+			words = append(words, lock, sysop, "Delete")
 		}
 		words = append(words, "Quit")
-		s.print("\n" + actions(words...) + " |08» |15")
+		s.print("\n" + s.actions(words...) + " " + colBorder + "» |15")
 		k, err := s.choose(keysOf(words...))
 		if err != nil || k == 'Q' {
 			return err
@@ -105,10 +112,11 @@ func (s *session) showAccount(u store.User) {
 		{"Locked", flag(u.Locked, "LOCKED")},
 		{"Approved", approvedText(u.Validated)},
 	}
-	s.print("\n")
+	lines := make([]string, 0, len(rows))
 	for _, r := range rows {
-		s.printf("  %s%-10s%s: %s\n", colInfo, r[0], colDim, r[1])
+		lines = append(lines, fmt.Sprintf("%s%-10s%s: %s", colInfo, r[0], colBorder, r[1]))
 	}
+	s.box("Account", lines...)
 }
 
 func (s *session) sysopResetPassword(u store.User) error {

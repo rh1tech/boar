@@ -3,7 +3,6 @@ package bbs
 import (
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 	"time"
 
@@ -14,19 +13,19 @@ import (
 const (
 	maxLoginAttempts = 3
 	maxPasswordTries = 3
-	logoIndent       = 15
+	logoIndent       = 23 // (79 - logo width 33) / 2
 )
 
 // chooseTerminal asks for the caller's charset unless the transport told us
 // the terminal type. It prints in plain ASCII, since we don't know yet.
 func (s *session) chooseTerminal(ask bool) error {
 	if tt, ok := s.tc.(termTyper); ok && !ask {
-		if cs, color, known := detectCharset(tt.TermType()); known {
-			s.setTerminal(cs, color)
+		if cs, mode, known := detectCharset(tt.TermType()); known {
+			s.setTerminal(cs, mode)
 			return nil
 		}
 	}
-	s.setTerminal(term.ASCII, false)
+	s.setTerminal(term.ASCII, term.NoColor)
 	s.print("\n" + safe(s.srv.cfg.Name) + "\n\n" +
 		"Select your terminal:\n" +
 		"  1) UTF-8 with ANSI color  (macOS Terminal, iTerm2, PuTTY)\n" +
@@ -41,11 +40,11 @@ func (s *session) chooseTerminal(ask bool) error {
 	}
 	switch choice {
 	case "2":
-		s.setTerminal(term.CP437, true)
+		s.setTerminal(term.CP437, term.ANSI16)
 	case "3":
-		s.setTerminal(term.ASCII, false)
+		s.setTerminal(term.ASCII, term.NoColor)
 	default:
-		s.setTerminal(term.UTF8, true)
+		s.setTerminal(term.UTF8, term.ANSI256)
 	}
 	return nil
 }
@@ -59,13 +58,29 @@ func (s *session) welcome() error {
 		return err
 	}
 	s.print("|CL\n" + logo(logoIndent) + "\n")
-	return s.showArt("welcome", map[string]string{
-		"NODE":    strconv.Itoa(s.node.id),
-		"NODES":   strconv.Itoa(s.srv.cfg.MaxNodes),
-		"ONLINE":  strconv.Itoa(len(s.srv.nodes.online())),
-		"MEMBERS": strconv.Itoa(members),
-		"TIME":    time.Now().Format("Monday, January 2 2006  15:04 MST"),
-	})
+	info := []string{
+		center(colLabel+"the wild boar "+colFrame+"·"+colLabel+" private mail "+colFrame+"·"+colLabel+" est. 2026", welcomeInner),
+		separator,
+		center(fmt.Sprintf("%sNode %s%d%s of %s%d  %s·  %sonline %s%d  %s·  %smembers %s%d",
+			colInfo, colValue, s.node.id, colInfo, colValue, s.srv.cfg.MaxNodes, colBorder,
+			colInfo, colValue, len(s.srv.nodes.online()), colBorder, colInfo, colValue, members), welcomeInner),
+		center(colDim+time.Now().Format("Monday, January 2 2006  15:04 MST"), welcomeInner),
+	}
+	pad := strings.Repeat(" ", (s.width()-welcomeWidth)/2)
+	for _, ln := range s.boxLines(s.srv.cfg.Name, welcomeWidth, info) {
+		s.print(pad + ln + "\n")
+	}
+	return nil
+}
+
+const (
+	welcomeWidth = 61
+	welcomeInner = welcomeWidth - panelPad
+)
+
+// center pads a pipe-coded string to sit in the middle of width columns.
+func center(text string, width int) string {
+	return strings.Repeat(" ", max((width-term.VisibleLen(text))/2, 0)) + text
 }
 
 // loginFailed is the one message for a wrong password and a locked account,
@@ -80,7 +95,7 @@ func (s *session) login() (bool, error) {
 			s.printf("\n%sToo many failed logins from your address. Try again later.\n", colAlert)
 			return false, nil
 		}
-		handle, err := s.prompt("\n|07Handle |08(or |15NEW|08 to register)|07: |15", store.MaxHandleLen)
+		handle, err := s.prompt("\n |07Handle |08(or |15NEW|08 to register)|07: |15", store.MaxHandleLen)
 		if err != nil {
 			return false, err
 		}
@@ -98,7 +113,7 @@ func (s *session) login() (bool, error) {
 			}
 			continue
 		}
-		password, err := s.promptSecret("|07Password|08: |15", store.MaxPasswordLen)
+		password, err := s.promptSecret(" |07Password|08: |15", store.MaxPasswordLen)
 		if err != nil {
 			return false, err
 		}
@@ -289,16 +304,20 @@ func (s *session) afterLogin() error {
 		}
 	}
 	s.header("Welcome")
+	greeting := "Welcome back, "
 	if u.Calls == 1 {
-		s.printf("\n  %sWelcome aboard, %s%s%s!\n", colLabel, colBright, safe(u.Handle), colLabel)
-	} else {
-		s.printf("\n  %sWelcome back, %s%s%s!\n", colLabel, colBright, safe(u.Handle), colLabel)
-		s.printf("  %sLast call: |07%s\n", colInfo, longDate(prev))
+		greeting = "Welcome aboard, "
 	}
-	s.printf("  %sCalls:     %s%d\n", colInfo, colValue, u.Calls)
+	lines := []string{colLabel + greeting + colBright + safe(u.Handle) + colLabel + "!", ""}
+	if u.Calls > 1 {
+		lines = append(lines, fmt.Sprintf("%sLast call %s: %s%s", colInfo, colBorder, colLabel, longDate(prev)))
+	}
+	lines = append(lines, fmt.Sprintf("%sCalls     %s: %s%d", colInfo, colBorder, colValue, u.Calls),
+		fmt.Sprintf("%sNode      %s: %s%d %svia %s", colInfo, colBorder, colValue, s.node.id, colDim, s.transport()))
 	if u.Sysop {
-		s.printf("  %sYou are a sysop. Press %s!%s at the main menu for the sysop tools.\n", colSysop, colBright, colSysop)
+		lines = append(lines, "", colSysop+"You are a sysop. Press "+colBright+"!"+colSysop+" at the main menu for the sysop tools.")
 	}
+	s.box("Signed in", lines...)
 
 	s.approvalNotice()
 	if err := s.offerNews(prev); err != nil {

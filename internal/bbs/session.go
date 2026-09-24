@@ -43,7 +43,8 @@ type session struct {
 	start  time.Time
 
 	cs    term.Charset
-	color bool
+	mode  term.ColorMode
+	color bool // mode != NoColor
 	rend  *term.Renderer
 
 	user     store.User
@@ -59,7 +60,7 @@ type session struct {
 
 func newSession(srv *Server, t Terminal, n *node, ip string, secure bool) *session {
 	s := &session{srv: srv, tc: t, node: n, ip: ip, ipKey: limitKey(ip), secure: secure, start: time.Now(), in: newInputPump(t)}
-	s.setTerminal(term.ASCII, false)
+	s.setTerminal(term.ASCII, term.NoColor)
 	return s
 }
 
@@ -90,9 +91,9 @@ func (s *session) run() error {
 	return s.goodbye()
 }
 
-func (s *session) setTerminal(cs term.Charset, color bool) {
-	s.cs, s.color = cs, color
-	s.rend = term.NewRenderer(color)
+func (s *session) setTerminal(cs term.Charset, mode term.ColorMode) {
+	s.cs, s.mode, s.color = cs, mode, mode != term.NoColor
+	s.rend = term.NewRenderer(mode)
 }
 
 func (s *session) terminalName() string {
@@ -382,7 +383,7 @@ func (s *session) yesNo(question string, def bool) (bool, error) {
 }
 
 func (s *session) pause() error {
-	s.print("|08[ |07press any key |08]")
+	s.print(s.pauseText())
 	_, err := s.readRune()
 	s.clearLine()
 	return err

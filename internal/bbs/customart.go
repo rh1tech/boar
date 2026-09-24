@@ -74,7 +74,7 @@ func (s *session) showArtFile(path string, vars map[string]string) error {
 		data = []byte(strings.ReplaceAll(string(data), "@"+k+"@", string(term.Encode(term.CP437, term.StripControl(v)))))
 	}
 	s.write(term.ConvertANSIArt(data, s.cs, s.color))
-	s.rend = term.NewRenderer(s.color) // the art reset the colors
+	s.rend = term.NewRenderer(s.mode) // the art reset the colors
 	return nil
 }
 
@@ -123,23 +123,26 @@ func (s *session) sysopArt() error {
 			s.printf("\n  %sNo art folder configured (start with -art DIR).\n\n", colDim)
 			return s.pause()
 		}
-		s.printf("\n  %sFolder: %s%s\n\n", colDim, colLabel, safe(dir))
 		var files []string
+		screens := []string{colDim + "Folder: " + colLabel + safe(dir), separator}
 		for _, screen := range customScreens {
 			found := artFiles(dir, screen)
 			note := colDim + "built-in"
 			if len(found) > 0 {
 				note = colOK + plural(len(found), "variant")
 			}
-			s.printf("  %s%s %s\n", colHandle, term.Pad(screen, 10), note)
+			screens = append(screens, colHandle+term.Pad(screen, 10)+" "+note)
 			files = append(files, found...)
 		}
-		s.print("\n")
+		s.box("Screens", screens...)
+		rows := make([]string, 0, len(files))
 		for i, f := range files {
-			s.printf("%s%4d  %s%s\n", colValue, i+1, colLabel, safe(filepath.Base(f)))
+			rows = append(rows, fmt.Sprintf("%s%4d  %s%s", colValue, i+1, colLabel, safe(filepath.Base(f))))
+		}
+		if err := s.table("Files", "", rows, "Drop NAME.ans or NAME.txt files into the folder to replace a screen."); err != nil {
+			return err
 		}
 		if len(files) == 0 {
-			s.printf("  %sDrop NAME.ans or NAME.txt files into the folder to replace a screen.\n\n", colDim)
 			return s.pause()
 		}
 		n, ok, err := s.pickNumber(len(files), "Preview")
