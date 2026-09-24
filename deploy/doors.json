@@ -1,0 +1,9 @@
+[
+  {
+    "key": "boarhunt",
+    "name": "Boar Hunt",
+    "description": "Find the wild boar in the forest",
+    "command": ["/opt/boar/bin/boar-door-example", "-dropfile", "{doorsys}"],
+    "max_minutes": 15
+  }
+]

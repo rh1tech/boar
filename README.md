@@ -304,6 +304,20 @@ escaped.
 - The database, its WAL files and the host key are all created with mode
   `0600`.
 
+## Deployment
+
+`deploy/install.sh user@host` builds Linux binaries and installs or updates
+Boar BBS on a Debian-style server over SSH (the remote user needs sudo):
+
+- binaries in `/opt/boar/bin`, a `boar` system user, and a hardened systemd
+  unit (`deploy/boar.service`) with telnet on port 23 and SSH on 2222;
+- config in `/etc/boar`: `doors.json` (installed once, with Boar Hunt) and
+  `boar.env`, where `BOAR_ARGS` adds flags and `BOAR_SMTP_PASSWORD` goes;
+- data in `/var/lib/boar`: the database, the SSH host key, custom art and
+  drop files. Updates never touch it.
+
+Open ports 23 and 2222 in the firewall. Logs: `journalctl -u boar -f`.
+
 ## Development
 
 ```sh
