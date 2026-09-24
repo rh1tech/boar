@@ -184,9 +184,9 @@ func (s *session) menuColumns(leftTitle string, left []menuItem, rightTitle stri
 	}
 }
 
-// actions renders a bar of keys from words whose first letter is the key:
-// "Reply", "Next" becomes  R Reply   N Next .
-// The bar wraps between keys so it never runs past the screen edge.
+// actions renders a bar of keys, one per word, using each word's first
+// letter as its key: "Reply" and "Next" become the buttons R Reply and
+// N Next. The bar wraps between keys so it never runs past the screen edge.
 func (s *session) actions(words ...string) string {
 	limit := s.width() - 4 // room for the "» " prompt
 	var b strings.Builder

@@ -1,12 +1,11 @@
 # Boar BBS
 
-A bulletin board in the old style, reachable over **telnet and SSH**: ANSI
-color, CP437 block art, hotkey menus, private **mail**, public **message
-boards**, live **chat**, **door games**, a oneliner wall and a set of sysop
-tools.
+An old-style bulletin board you call over telnet or SSH. It has ANSI color,
+CP437 block art and hotkey menus, plus private mail, public message boards,
+live chat, door games, a oneliner wall and tools for the sysop.
 
-It's written in Go and builds to one binary. All data lives in one SQLite
-file, via a pure-Go driver, so there's no C compiler step.
+It's written in Go and builds to a single binary. Everything is stored in
+one SQLite file through a pure-Go driver, so you don't need a C compiler.
 
 ```
                ██████╗  ██████╗  █████╗ ██████╗
@@ -25,12 +24,13 @@ ssh -p 2222 bbs@localhost                 # any user name; you log in to the BBS
 telnet localhost 2323                     # or SyncTERM, NetRunner, PuTTY
 ```
 
-Type `NEW` at the handle prompt to register. **The first account becomes the
-sysop.** Everyone after that can read but not write until a sysop approves
-them (see [New callers](#new-callers)).
+Type `NEW` at the handle prompt to register. The first account becomes the
+sysop, so register before you give anyone the address. Everyone after that
+can read but not write until a sysop approves them (see
+[New callers](#new-callers)).
 
 The module targets Go 1.27. With the default `GOTOOLCHAIN=auto`, an older
-`go` command downloads the right toolchain for this project by itself.
+`go` command downloads the right toolchain by itself.
 
 ### Flags
 
@@ -58,89 +58,94 @@ The module targets Go 1.27. With the default `GOTOOLCHAIN=auto`, an older
 
 ## What callers get
 
-**Messages**
-- **Mailbox**:
-  - Inbox with unread markers, and a mode that reads new mail in order.
-  - Reply with quoting, forward, and conversation **threads**.
-  - **Search** by words, subject or handle.
-  - Send to several people at once (`kasia, bartek`). Sysops can mail `ALL`.
-  - Outbox with **read receipts** (`√`).
-  - Each side deletes its own copy; a message is purged once both have.
-- **Message boards**: public forums with per-caller unread counts, a
-  "read all new" scan, threaded replies, and mailing a post's author. Sysops
-  can make a board read-only for everyone else, like the seeded
-  *Announcements*.
-- **Chat**: a live teleconference with rooms (`/join`, `/who`, `/rooms`,
-  `/me`, `/q`). Lines from other callers appear while you type without
-  garbling your half-typed line.
-- **Pages**: a one-line message to someone online now. It shows at their next
+### Mail
+
+The mailbox has an inbox with unread markers and a mode that walks through
+new mail in order. You can reply with the original quoted, forward, follow a
+conversation as a thread, and search by words, subject or handle. One message
+can go to several people (`kasia, bartek`), and sysops can mail `ALL`. The
+outbox marks messages the recipient has read with `√`. Each side deletes its
+own copy, and a message is gone for good once both have.
+
+### Everything else
+
+- Message boards: public forums with unread counts per caller, a "read all
+  new" scan, threaded replies, and a key to mail a post's author privately.
+  Sysops can make a board read-only for everyone else, like the
+  Announcements board that comes with a new install.
+- Chat, with rooms (`/join`, `/who`, `/rooms`, `/me`, `/q`). Other callers'
+  lines appear while you type, without mangling what you've typed so far.
+- Pages: a one-line message to someone online. They see it at their next
   prompt, or right away if they're in chat.
-- **News**: bulletins from the sysop. New ones are offered at login.
-- **Door games**: external programs such as Legend of the Red Dragon; see
+- News bulletins from the sysop, offered at login when there's something new.
+- Door games, external programs such as Legend of the Red Dragon. See
   [Doors](#doors).
+- Who's online (with each caller's node, what they're doing and whether they
+  came in over SSH), last callers, the user list and the oneliner wall,
+  which also shows at login.
+- Settings for password, location, terminal type, email and blocked callers.
+  Someone you block can't mail or page you, and you won't see their chat
+  lines.
 
-**People**
-- Who's online (node, activity, and whether they connected over SSH), last
-  callers, and the user list.
-- **Oneliner wall**, shown at login.
-- **Settings**: password, location, terminal type, **blocked callers** and
-  **email**. A blocked caller can't mail or page you, and you don't see
-  their chat lines.
-
-**Terminals**: UTF-8 with color, CP437 with color (classic BBS clients), or
-plain ASCII. Over SSH the terminal type is detected automatically. Window
-size comes from Telnet NAWS or the SSH pty, and long output pauses at
-`-- more --`.
+The BBS works with UTF-8 terminals, classic CP437 clients and plain ASCII.
+Over SSH it picks the terminal type up by itself. It reads the window size
+from Telnet NAWS or the SSH pty, and long output pauses at `-- more --`.
 
 ## New callers
 
 With `-approve-new-users` (the default), a new account can only read until a
-sysop approves it. It can read the boards and news, and mail the sysop, but
+sysop approves it. It can read the boards and news and mail the sysop, but
 it can't mail other callers, post, chat, page, open doors, write on the
-oneliner wall or set up email. Online sysops get a notice when someone signs
-up, and the main menu shows how many are waiting. Under **Sysop menu → New
-callers**, sysops approve, reject (delete) or mail each one. Promoting
-someone to sysop approves them too. Start with `-approve-new-users=false` to
-let everyone in straight away.
+oneliner wall or set up email.
+
+Sysops who are online get a notice when someone signs up, and the main menu
+shows how many are waiting. Sysop menu → New callers lets you approve,
+reject (which deletes the account) or mail each one. Promoting someone to
+sysop approves them too. Start with `-approve-new-users=false` to let
+everyone in straight away.
 
 ## SSH keys
 
-Callers can add up to 5 public keys under **Settings → SSH keys**, by pasting
-the contents of `~/.ssh/id_ed25519.pub`. After that, `ssh -p 2222
-bbs@host` signs them in with no password, and the key also gets them past
-any per-handle login backoff. DSA keys and RSA keys under 2048 bits are
-refused. SSH clients without a registered key get the normal BBS login;
-whatever password they send to SSH itself isn't checked.
+Under Settings → SSH keys, callers can paste up to 5 public keys (the
+contents of `~/.ssh/id_ed25519.pub`). After that, `ssh -p 2222 bbs@host`
+signs them in without a password, and skips any per-handle login backoff.
+DSA keys and RSA keys under 2048 bits are refused.
+
+SSH clients without a registered key get the normal BBS login. Whatever
+password they send to SSH itself isn't checked.
 
 ## Email
 
 Start with `-smtp-host` and `-smtp-from`, and put the SMTP password in
 `BOAR_SMTP_PASSWORD`. Gmail and Fastmail both work with an app password.
-Without these flags, email features stay off.
+Without these flags, email stays off.
 
-- Callers add an address under **Settings → Email**. It only counts once
-  they type the 6-digit code emailed to it. Codes last 15 minutes, only a
-  hash is stored, and 5 wrong guesses cancel the code.
-- For new BBS mail, each caller chooses **off**, a **notice** (sender and
-  subject, sent only when they're offline, at most one every 10 minutes), or
-  a **full copy**.
-- **Email me** on any message sends a copy to your own verified address.
-- The BBS never sends to an address its owner hasn't verified, so it can't be
-  used as a spam relay. Replies to these emails aren't delivered anywhere.
-- Mail to a remote relay only goes out over TLS with a valid certificate
-  (STARTTLS, or implicit TLS on port 465). A relay on the same machine, such
-  as a local Postfix on `127.0.0.1:25`, is used without TLS, since the mail
-  never leaves the machine on its way there.
-- An address can belong to one account only, and it gets at most 3 code
-  emails a day however many accounts ask, so the code emails can't be used
-  to flood someone's inbox. Header values are stripped of line breaks, so a subject can't
-  add headers of its own. Logs record only the recipient's domain.
+Callers add an address under Settings → Email. It only counts once they
+type the 6-digit code that gets emailed to it. Codes last 15 minutes, only a
+hash is stored, and 5 wrong guesses cancel the code. For new BBS mail, each
+caller picks one of three settings: off, a short notice (who wrote and the
+subject, only while they're offline, at most one every 10 minutes), or a full
+copy. "Email me" on any message sends a copy to your own verified address.
+
+Some limits keep it from being abused:
+
+- The BBS only emails addresses their owner has verified, so it can't be
+  used as a spam relay. Replies to its emails go nowhere.
+- An address can belong to one account, and gets at most 3 code emails a
+  day no matter how many accounts ask, so the codes can't be used to flood
+  someone's inbox.
+- Header values have line breaks stripped out, so a subject can't sneak in
+  extra headers. The logs record only the recipient's domain.
+- Mail to a remote relay needs TLS with a valid certificate (STARTTLS, or
+  implicit TLS on port 465). A relay on the same machine, such as Postfix on
+  `127.0.0.1:25`, is used without TLS, because the mail never leaves the
+  machine on the way there.
 
 ## Custom art
 
 Drop screens into the art folder (`-art`, default `data/art`) to replace the
-built-in ones. The BBS picks a file up the next time it shows that screen,
-so there's no need to restart.
+built-in ones. The BBS reads the folder each time it shows a screen, so you
+don't need to restart.
 
 | Screen    | When it's shown         |
 |-----------|-------------------------|
@@ -149,24 +154,23 @@ so there's no need to restart.
 | `logon`   | right after login       |
 | `goodbye` | when logging off        |
 
-- **`NAME.ans`** is ANSI art in CP437, as saved by PabloDraw or Moebius. The
-  SAUCE metadata record is removed.
-  - CP437 terminals get the original bytes.
-  - UTF-8 terminals get the glyphs converted to Unicode.
-  - Plain-ASCII callers get approximations without color.
-- **`NAME.txt`** is UTF-8 text with the pipe codes described
-  [below](#screens-and-color-codes).
-- **Variants:** `welcome.2.ans`, `welcome.3.txt` and so on. One is picked at
-  random for each call.
-- **Tokens:** `@BBS@`, `@NODE@`, `@NODES@`, `@ONLINE@`, `@MEMBERS@`,
-  `@HANDLE@`, `@LOCATION@`, `@CALLS@`, `@TIME@` and `@DURATION@` are filled
-  in on every screen.
-- Sysops can preview every screen under **Sysop menu → Custom art**.
+A screen can be `NAME.ans`, ANSI art in CP437 as saved by PabloDraw or
+Moebius, or `NAME.txt`, UTF-8 text with the pipe codes described
+[below](#screens-and-color-codes). The SAUCE record at the end of `.ans`
+files is stripped. CP437 terminals get the original bytes, UTF-8 terminals
+get the glyphs converted to Unicode, and plain ASCII callers get
+approximations without color.
+
+Add variants such as `welcome.2.ans` or `welcome.3.txt` and one is picked at
+random on each call. These tokens are filled in on every screen: `@BBS@`,
+`@NODE@`, `@NODES@`, `@ONLINE@`, `@MEMBERS@`, `@HANDLE@`, `@LOCATION@`,
+`@CALLS@`, `@TIME@` and `@DURATION@`. Sysop menu → Custom art previews each
+file.
 
 ## Doors
 
-Doors are external programs the BBS hands a caller to. List them in
-`data/doors.json`; `doors.example.json` shows the format.
+A door is an external program the BBS hands the caller over to. List doors
+in `data/doors.json`; `doors.example.json` shows the format.
 
 | Field         | Meaning                                                    |
 |---------------|------------------------------------------------------------|
@@ -178,22 +182,19 @@ Doors are external programs the BBS hands a caller to. List them in
 | `single_node` | only one caller at a time                                  |
 | `sysop_only`  | hidden from other callers                                  |
 
-Placeholders: `{node}`, `{dropdir}`, `{doorsys}`, `{dorinfo}`, `{handle}`,
-`{userid}`, `{minutes}`, and `{port}` for tcp doors. They're also passed as
-`BOAR_*` environment variables.
+The placeholders are `{node}`, `{dropdir}`, `{doorsys}`, `{dorinfo}`,
+`{handle}`, `{userid}` and `{minutes}`, plus `{port}` for tcp doors. Doors
+also get them as `BOAR_*` environment variables.
 
-Before starting a door, the BBS writes `DOOR.SYS` (the 52-line GAP format)
-and `DORINFO1.DEF` into a private folder for each node. Your password is
-never written into them. While the door runs:
+Before a door starts, the BBS writes `DOOR.SYS` (the 52-line GAP format) and
+`DORINFO1.DEF` into a private folder for that node. The caller's password
+never goes into them. While the door runs, its output is converted from
+CP437 for UTF-8 callers and the caller's keys are converted to CP437. When
+the time limit passes or the caller hangs up, the door is killed along with
+anything it started. Doors get a minimal environment, so nothing secret from
+the BBS process leaks into them.
 
-- Output is translated from CP437 for UTF-8 callers, and typed characters
-  are translated to CP437.
-- At the time limit, or if the caller hangs up, the door and everything it
-  started are killed.
-- Doors get a minimal environment, so no secrets from the BBS process leak
-  into them.
-
-**Try the example door**, Boar Hunt:
+To try the example door, Boar Hunt:
 
 ```sh
 go build -o bin/boar-door-example ./cmd/boar-door-example
@@ -201,31 +202,30 @@ cp doors.example.json data/doors.json    # then remove the LORD entry
 go run ./cmd/boar                        # press D at the main menu
 ```
 
-**Classic DOS doors** (LORD, TradeWars 2002, Usurper) run under
-[DOSBox-X](https://dosbox-x.com) using `"io": "tcp"`. The BBS listens on
-`127.0.0.1:{port}` and DOSBox-X connects its emulated serial port there
-(`serial1=nullmodem server:127.0.0.1 port:{port}`). The door itself is set
-up for COM1 with a FOSSIL driver such as BNU or X00, with the drop folder
-mounted as a DOS drive. The LORD entry in `doors.example.json` shows the
-shape of it, but the exact DOSBox-X and door settings depend on the game
-and haven't been tested with a real DOS door yet. **You supply the game files;
-classic doors are copyrighted.**
+Classic DOS doors like LORD, TradeWars 2002 and Usurper run under
+[DOSBox-X](https://dosbox-x.com) with `"io": "tcp"`. The BBS listens on
+`127.0.0.1:{port}`, and DOSBox-X connects its emulated serial port there
+(`serial1=nullmodem server:127.0.0.1 port:{port}`). Inside DOSBox the door
+is set up for COM1 with a FOSSIL driver such as BNU or X00, and the drop
+folder is mounted as a DOS drive. The LORD entry in `doors.example.json`
+shows roughly what that looks like. The exact DOSBox-X and door settings
+depend on the game, and nobody has tried a real DOS door with it yet. You
+supply the game files; classic doors are still copyrighted.
 
 ## Sysop tools
 
-Press `!` at the main menu:
+Press `!` at the main menu. From there a sysop can:
 
-- **Manage a user**: see their details, mail them, reset their password,
-  lock or unlock the account (a lock hangs them up at once), promote or
-  demote, and delete (you retype the handle to confirm).
-- **Kick a node**, **broadcast** a line to everyone online, and read the
-  **event log** (logins, failed logins with IPs, signups, and every sysop
-  action).
-- Create and delete **boards**, post and delete **news** bulletins, clean
-  up the **oneliner wall**, and preview **custom art**.
+- look up a user, mail them, reset their password, lock or unlock the
+  account (locking hangs them up at once), promote or demote them, or
+  delete the account after retyping the handle to confirm;
+- kick a node, broadcast a line to everyone online, and read the event log
+  of logins, failed logins with their IPs, signups and every sysop action;
+- create and delete boards, post and delete news, clean up the oneliner
+  wall and preview custom art.
 
-Sysop rights are re-checked on every action, so a demotion takes effect
-immediately.
+Sysop rights are checked again on every action, so a demotion takes effect
+straight away.
 
 ## Layout
 
@@ -239,17 +239,17 @@ internal/store/    SQLite: users, blocks, mail, boards, news, oneliners, events,
 internal/mailer/   SMTP sending and the background mail queue
 internal/doors/    door config, drop files, running door programs
 internal/bbs/      server, SSH transport, nodes, sessions, menus, mail,
-                   boards, chat, sysop tools
-internal/bbs/art/  screens (*.ans), embedded into the binary
+                   boards, chat, sysop tools, screen layout
+internal/bbs/art/  built-in screens (*.ans), embedded into the binary
 ```
 
 The schema is versioned with `PRAGMA user_version`. Migrations live in
-`internal/store/schema.go` and are append-only.
+`internal/store/schema.go` and are only ever appended to.
 
 ### Screens and color codes
 
-Screens in `internal/bbs/art/` are UTF-8 text with Renegade/Mystic-style
-pipe codes:
+The built-in screens in `internal/bbs/art/` and custom `.txt` screens are
+UTF-8 text with Renegade/Mystic-style pipe codes:
 
 | Code          | Effect                                      |
 |---------------|---------------------------------------------|
@@ -259,60 +259,72 @@ pipe codes:
 | `\|RE`        | reset colors                                |
 | `\|\|`        | a literal `\|`                              |
 
-Tokens like `@HANDLE@` are replaced at display time, and their values are
-escaped.
+Tokens like `@HANDLE@` are replaced when the screen is shown, and their
+values are escaped.
+
+Modern terminals get these colors as 256-color codes that match the VGA
+palette. The classic codes draw bold black as black and brown as olive on
+most of them. CP437 clients keep the classic codes they expect.
 
 ## Security notes
 
-- **Prefer SSH.** Telnet is plaintext, and telnet callers are warned at
-  signup. SSH authentication is left open on purpose: callers log in to the
-  BBS inside the encrypted channel, so any SSH user name works. The host key
-  is Ed25519, generated on first run with mode `0600`. Back it up, because
-  callers pin it.
-- Passwords are PBKDF2-HMAC-SHA256 (600k iterations, random salt). An unknown
-  handle takes as long to reject as a wrong password.
-- User text has control characters stripped when stored and again when
-  displayed, and pipe codes are escaped, so nobody can send escape sequences
-  to someone else's terminal. All SQL is parameterised.
-- Passwords must be at least 8 characters.
-- **Rate limits:**
-  - Per IP: failed logins (5 per 15 minutes, which also blocks new
-    connections) and signups (3 per hour). IPv6 addresses count per /64, so
-    rotating through a subnet doesn't help.
-  - Per handle: after 3 failed logins, from anywhere, each further try waits
-    longer: 2 s, 4 s, 8 s and so on, up to one minute. Parallel guesses
-    against one handle are refused while a check is running. A successful
-    login clears it. Unknown handles are treated the same way, so this
-    reveals nothing, and the most a guesser can do to the real owner is make
-    them wait a minute.
-  - Whole BBS: at most `-max-signups` new accounts a day.
-  - Per user: mail (30 recipients per hour), posts, pages, chat lines and
-    oneliners. Sysops are exempt.
-  - The login, signup and code-email limits are saved in the database, so
-    restarting the BBS doesn't reset them.
-- A wrong password and a locked account get the same message, so guessing
-  a locked account's password right reveals nothing. Locked callers who sign
-  in with an SSH key are told directly, since the key proves who they are.
-- **Timeouts:** 5 minutes to log in, a hang-up when idle, 30 seconds for the
-  SSH handshake, and a write watchdog for clients that stop reading.
-- **Connection caps:** open connections are capped in total and per IP
-  (8), before login, so floods of half-open connections are dropped at once.
-  Nodes are capped separately.
-- **Sysop checks in the store too:** privileged database operations check
-  that the acting user is a sysop themselves, and refuse to lock, demote or
-  delete yourself, as a backstop behind the menus.
-- User and board listings are capped (1000 users, the newest 500 posts per
-  board), so a huge table can't make every visit expensive.
-- The database, its WAL files and the host key are all created with mode
-  `0600`.
+Prefer SSH. Telnet is plaintext, and telnet callers are warned about it at
+signup. SSH authentication is left open on purpose: callers log in to the
+BBS inside the encrypted channel, so any SSH user name works. The host key
+is Ed25519, created on first run with mode `0600`. Back it up, because
+callers' SSH clients remember it and will complain if it changes.
+
+Passwords are hashed with PBKDF2-HMAC-SHA256 (600,000 iterations, random
+salt) and must be at least 8 characters. An unknown handle takes as long to
+reject as a wrong password. User text has control characters stripped when
+it's stored and again when it's shown, and pipe codes are escaped, so nobody
+can send escape sequences to someone else's terminal. All SQL is
+parameterised.
+
+Rate limits:
+
+- Per IP: 5 failed logins per 15 minutes (after which new connections from
+  that address are refused too) and 3 signups per hour. IPv6 addresses count
+  per /64, so rotating through a subnet doesn't help.
+- Per handle: after 3 failed logins from anywhere, each further try waits
+  longer (2 s, 4 s, 8 s and so on, up to a minute). Parallel guesses against
+  one handle are refused while a check is running, and a successful login
+  clears the count. Unknown handles are treated the same way, so this
+  reveals nothing, and the most a guesser can do to the real owner is make
+  them wait a minute.
+- Across the BBS: at most `-max-signups` new accounts a day.
+- Per user: mail (30 recipients an hour), posts, pages, chat lines and
+  oneliners. Sysops are exempt.
+
+The login, signup and code-email limits are kept in the database, so a
+restart doesn't reset them.
+
+A wrong password and a locked account get the same message, so guessing a
+locked account's password correctly tells an attacker nothing. Locked
+callers who sign in with an SSH key are told directly, since the key already
+proves who they are.
+
+Callers get 5 minutes to log in and are hung up when idle. The SSH handshake
+has 30 seconds, and a write watchdog drops clients that stop reading. Open
+connections are capped in total and at 8 per IP before login, so a flood of
+half-open connections is dropped immediately. Nodes have their own cap.
+
+Privileged database operations check that the acting user is a sysop, and
+refuse to lock, demote or delete the sysop's own account. The menus check
+too; this is a second line of defence. The user list stops at 1,000 users
+and each board at its newest 500 posts, so a huge table can't make every
+visit slow. The database, its WAL files and the host key are all created
+with mode `0600`.
 
 ## Deployment
 
 `deploy/install.sh user@host` builds Linux binaries and installs or updates
-Boar BBS on a Debian-style server over SSH (the remote user needs sudo):
+Boar BBS on a Debian-style server over SSH. The remote user needs sudo. The
+script sets up:
 
-- binaries in `/opt/boar/bin`, a `boar` system user, and a hardened systemd
-  unit (`deploy/boar.service`) with telnet on port 23 and SSH on 2222;
+- the binaries in `/opt/boar/bin`, a `boar` system user, and a locked-down
+  systemd unit (`deploy/boar.service`) with telnet on port 23 and SSH on
+  2222;
 - config in `/etc/boar`: `doors.json` (installed once, with Boar Hunt) and
   `boar.env`, where `BOAR_ARGS` adds flags and `BOAR_SMTP_PASSWORD` goes;
 - data in `/var/lib/boar`: the database, the SSH host key, custom art and
@@ -332,8 +344,8 @@ The `commit-msg` hook in `.githooks/` rejects commit messages with
 co-author trailers or other traces of AI tools.
 
 The `bbs` tests start real telnet and SSH servers on random ports and drive
-them the way callers would: two users chatting, a sysop locking someone who
-is online, and so on.
+them the way callers would, for example two users chatting or a sysop
+locking someone out while they're online.
 
 ## License
 

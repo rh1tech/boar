@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 
-// Package store persists everything the BBS knows — users, private mail,
-// public boards, bulletins, oneliners and the event log — in SQLite.
+// Package store keeps everything the BBS knows in SQLite: users, private
+// mail, public boards, bulletins, oneliners and the event log.
 //
 // The pure-Go modernc.org/sqlite driver keeps the BBS a single static binary.
 // The pool is limited to one connection: SQLite serialises writers anyway, and
