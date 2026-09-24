@@ -15,19 +15,19 @@ var artFS embed.FS
 // Palette, as pipe codes. Brown and amber for the boar, cyan for facts,
 // dark gray for structure.
 const (
-	colFrame   = "|06" // the title frame
-	colBorder  = "|08" // panel borders
-	colTitle   = "|14" // panel titles and the BBS name
-	colKey     = "|14"
-	colLabel   = "|07"
-	colDim     = "|08"
-	colAlert   = "|12"
-	colOK      = "|10"
-	colInfo    = "|03"
-	colValue   = "|11"
-	colHandle  = "|14"
-	colBright  = "|15"
-	colSysop   = "|13"
+	colFrame  = "|06" // the title frame
+	colBorder = "|08" // panel borders
+	colTitle  = "|14" // panel titles and the BBS name
+	colKey    = "|14"
+	colLabel  = "|07"
+	colDim    = "|08"
+	colAlert  = "|12"
+	colOK     = "|10"
+	colInfo   = "|03"
+	colValue  = "|11"
+	colHandle = "|14"
+	colBright = "|15"
+	colSysop  = "|13"
 )
 
 var logoRows = []string{
@@ -71,15 +71,6 @@ func logo(indent int) string {
 	return b.String() + colLabel
 }
 
-
-
-
-
-
-
-
-
-
 // showArt prints an embedded screen, substituting @KEY@ tokens with escaped
 // values.
 func (s *session) showArt(name string, vars map[string]string) error {
@@ -108,7 +99,6 @@ type field struct {
 	color string
 }
 
-
 // bodyLines wraps a body for display, tinting quoted lines.
 func (s *session) bodyLines(body string) []string {
 	var out []string
@@ -133,7 +123,6 @@ func (s *session) reportError(action string, err error) error {
 	}
 	return s.pause()
 }
-
 
 // keysOf returns the upper-case first letters of words.
 func keysOf(words ...string) string {

@@ -45,8 +45,8 @@ func (s *session) mailMenu() error {
 			{'N', "Read new mail", newNote},
 			{'I', "Inbox", fmt.Sprintf("%s(%s)", colDim, plural(len(inbox), "message"))},
 			{'S', "Send a message", ""},
-			{'O', "Outbox", colDim+"(sent mail, read receipts)"},
-			{'F', "Find", colDim+"(search your mail)"},
+			{'O', "Outbox", colDim + "(sent mail, read receipts)"},
+			{'F', "Find", colDim + "(search your mail)"},
 			{'Q', "Back to main menu", ""},
 		})
 

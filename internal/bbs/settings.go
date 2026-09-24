@@ -22,11 +22,11 @@ func (s *session) settings() error {
 		}
 		s.menu("Your account", []menuItem{
 			{'P', "Change password", ""},
-			{'L', "Location", colDim+"("+safe(loc)+")"},
-			{'T', "Terminal", colDim+"("+s.terminalName()+")"},
-			{'B', "Blocked callers", colDim+"("+plural(len(blocked), "caller")+")"},
-			{'E', "Email", colDim+"("+s.emailNote()+")"},
-			{'K', "SSH keys", colDim+"(sign in without a password)"},
+			{'L', "Location", colDim + "(" + safe(loc) + ")"},
+			{'T', "Terminal", colDim + "(" + s.terminalName() + ")"},
+			{'B', "Blocked callers", colDim + "(" + plural(len(blocked), "caller") + ")"},
+			{'E', "Email", colDim + "(" + s.emailNote() + ")"},
+			{'K', "SSH keys", colDim + "(sign in without a password)"},
 			{'Q', "Back to main menu", ""},
 		})
 
