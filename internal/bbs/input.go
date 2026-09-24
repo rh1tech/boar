@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package bbs
 
 // inputPump reads the terminal on its own goroutine and hands bytes over a

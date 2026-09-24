@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Package term prepares BBS text for a remote terminal: pipe color codes,
 // character-set encoding (UTF-8, CP437, ASCII) and text sanitising.
 package term

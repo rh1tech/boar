@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Command boar runs Boar BBS over telnet and SSH.
 package main
 

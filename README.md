@@ -334,3 +334,15 @@ co-author trailers or other traces of AI tools.
 The `bbs` tests start real telnet and SSH servers on random ports and drive
 them the way callers would: two users chatting, a sysop locking someone who
 is online, and so on.
+
+## License
+
+Copyright (C) 2026 Mikhail Matveev
+
+Boar BBS is free software: you can redistribute it and/or modify it under
+the terms of the GNU General Public License as published by the Free
+Software Foundation, either version 3 of the License, or (at your option)
+any later version. It is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See [LICENSE](LICENSE)
+for the full text.

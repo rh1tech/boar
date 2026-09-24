@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Command boar-door-example is a tiny door game, "Boar Hunt", that shows how
 // a door talks to the BBS: it reads the caller's name from DOOR.SYS, then
 // plays over stdin/stdout in CP437 with ANSI colors, echoing its own input

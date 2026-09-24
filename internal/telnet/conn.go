@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Package telnet implements the part of the Telnet protocol a BBS needs:
 // negotiation for character-at-a-time mode with server-side echo, window
 // size reporting (NAWS, RFC 1073), IAC escaping and CR/LF normalisation.

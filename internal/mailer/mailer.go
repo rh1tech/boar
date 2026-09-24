@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Package mailer sends plain-text email through an SMTP relay, from a
 // bounded background queue so a slow mail server never stalls a caller.
 package mailer

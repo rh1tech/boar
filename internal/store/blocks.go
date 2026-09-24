@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 package store
 
 // Block stops blockedID from mailing, paging or chatting at userID.

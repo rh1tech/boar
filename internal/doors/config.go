@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Package doors runs external "door" programs for callers, the classic BBS
 // way: the BBS writes drop files describing the caller (DOOR.SYS and
 // DORINFO1.DEF), starts the program, and wires the caller's terminal to it.

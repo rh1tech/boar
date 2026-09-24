@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Package store persists everything the BBS knows — users, private mail,
 // public boards, bulletins, oneliners and the event log — in SQLite.
 //

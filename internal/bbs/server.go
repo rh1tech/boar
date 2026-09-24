@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+
 // Package bbs is the Boar BBS bulletin board: telnet and SSH sessions, menus,
 // private mail, public boards, chat and the sysop's tools.
 package bbs
