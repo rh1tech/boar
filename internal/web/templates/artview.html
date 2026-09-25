@@ -1,0 +1,8 @@
+{{define "content"}}
+<p><a class="item" href="/art">all art</a></p>
+<section class="box">
+  <h2 class="title">{{.Data.Name}}</h2>
+  <pre class="ansi">{{.Data.Screen}}</pre>
+  <p class="dim">Tokens such as <code>@HANDLE@</code> are filled in for each caller on the BBS.</p>
+</section>
+{{end}}

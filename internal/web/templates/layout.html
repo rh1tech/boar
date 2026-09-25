@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>{{.Title}} · {{.BBS}} sysop</title>
+<link rel="stylesheet" href="/static/sysop.css">
+<link rel="icon" href="/static/favicon.png" type="image/png">
+</head>
+<body>
+{{- if .User.ID}}
+<header class="bar">
+  <span class="bbs">{{.BBS}}</span>
+  <span class="dim">sysop</span>
+  <span class="who"><span class="lamp{{if .Online}} on{{end}}"></span>{{plural .Online "node"}} online · {{.User.Handle}}</span>
+  <form method="post" action="/logout" class="inline"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="item" accesskey="q"><span class="key">Q</span>uit</button></form>
+</header>
+<nav class="menu" aria-label="Sysop menu">
+  <a class="item{{if eq .Nav "dashboard"}} on{{end}}" href="/" accesskey="d">{{hotkey "Dashboard"}}</a>
+  <a class="item{{if eq .Nav "callers"}} on{{end}}" href="/callers" accesskey="c">{{hotkey "Callers"}}{{if .Waiting}} <b class="count">{{.Waiting}}</b>{{end}}</a>
+  <a class="item{{if eq .Nav "users"}} on{{end}}" href="/users" accesskey="u">{{hotkey "Users"}}</a>
+  <a class="item{{if eq .Nav "events"}} on{{end}}" href="/events" accesskey="e">{{hotkey "Events"}}</a>
+  <a class="item{{if eq .Nav "boards"}} on{{end}}" href="/boards" accesskey="b">{{hotkey "Boards"}}</a>
+  <a class="item{{if eq .Nav "news"}} on{{end}}" href="/news" accesskey="n">{{hotkey "News"}}</a>
+  <a class="item{{if eq .Nav "oneliners"}} on{{end}}" href="/oneliners" accesskey="o">{{hotkey "Oneliners"}}</a>
+  <a class="item{{if eq .Nav "art"}} on{{end}}" href="/art" accesskey="a">{{hotkey "Art"}}</a>
+</nav>
+{{- end}}
+<main>
+{{- if .Flash}}
+<p class="flash{{if .Error}} bad{{end}}" role="status">{{.Flash}}</p>
+{{- end}}
+{{template "content" .}}
+</main>
+</body>
+</html>
+{{define "events"}}
+{{- if .}}
+<table class="log">
+  <thead><tr><th>When</th><th>What</th><th>Who</th><th>From</th><th>Detail</th></tr></thead>
+  <tbody>
+  {{- range .}}
+  <tr class="k-{{.Kind}}">
+    <td class="dim nowrap">{{when .At}}</td>
+    <td class="kind">{{.Kind}}</td>
+    <td>{{if .UserID}}<a href="/users/{{.UserID}}">{{.Handle}}</a>{{else}}{{.Handle}}{{end}}</td>
+    <td class="dim">{{.IP}}</td>
+    <td>{{.Detail}}</td>
+  </tr>
+  {{- end}}
+  </tbody>
+</table>
+{{- else}}
+<p class="dim">Nothing has happened yet.</p>
+{{- end}}
+{{end}}
+{{define "flags"}}{{if .Sysop}}<span class="tag sysop">sysop</span>{{end}}{{if .Locked}}<span class="tag bad">locked</span>{{end}}{{if not .Validated}}<span class="tag warn">waiting</span>{{end}}{{if and (not .Sysop) (not .Locked) .Validated}}<span class="dim">member</span>{{end}}{{end}}

@@ -1,0 +1,12 @@
+{{define "content"}}
+<section class="box">
+  <h2 class="title">Event log</h2>
+  <p class="filters">
+    <a class="item{{if eq .Data.Kind ""}} on{{end}}" href="/events">all</a>
+    {{- range .Data.Kinds}}
+    <a class="item{{if eq $.Data.Kind .}} on{{end}}" href="/events?kind={{.}}">{{.}}</a>
+    {{- end}}
+  </p>
+  {{template "events" .Data.Events}}
+</section>
+{{end}}

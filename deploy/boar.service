@@ -19,6 +19,7 @@ ExecStart=/opt/boar/bin/boar \
   -doors /etc/boar/doors.json \
   -doors-dir /var/lib/boar/doors \
   -public-address boar.rh1.tech:2222 \
+  -web 127.0.0.1:8023 \
   $BOAR_ARGS
 Restart=on-failure
 RestartSec=5

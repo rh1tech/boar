@@ -1,0 +1,12 @@
+{{define "content"}}
+<section class="box login">
+  <h1 class="title">{{.BBS}} · sysop</h1>
+  <form method="post" action="/login">
+    <label>Handle <input name="handle" value="{{.Data.Handle}}" autocomplete="username" maxlength="20" required autofocus></label>
+    <label>Password <input name="password" type="password" autocomplete="current-password" maxlength="64" required></label>
+    {{- with .Data.Error}}<p class="bad">{{.}}</p>{{end}}
+    <button class="item primary">Log in</button>
+  </form>
+  <p class="dim">Sysops only. There is no sign-up here: accounts are made on the BBS itself, and a sysop promotes them.</p>
+</section>
+{{end}}

@@ -1,0 +1,25 @@
+{{define "content"}}
+<section class="box">
+  <h2 class="title">Users</h2>
+  <form method="get" action="/users" class="row">
+    <input name="q" value="{{.Data.Query}}" placeholder="Handle or location" aria-label="Search users">
+    <button class="item">find</button>
+    {{- if .Data.Query}} <a class="item" href="/users">clear</a>{{end}}
+  </form>
+  <p class="dim">{{plural (len .Data.Users) "user"}}{{if .Data.Query}} matching, of {{.Data.Total}}{{end}}.</p>
+  <table>
+    <thead><tr><th>Handle</th><th>Location</th><th>Status</th><th>Calls</th><th>Last call</th></tr></thead>
+    <tbody>
+    {{- range .Data.Users}}
+    <tr>
+      <td><a href="/users/{{.ID}}">{{.Handle}}</a></td>
+      <td>{{.Location}}</td>
+      <td>{{template "flags" .}}</td>
+      <td class="num">{{.Calls}}</td>
+      <td class="dim">{{ago .LastLogin}}</td>
+    </tr>
+    {{- end}}
+    </tbody>
+  </table>
+</section>
+{{end}}

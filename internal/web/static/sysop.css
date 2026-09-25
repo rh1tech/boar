@@ -1,0 +1,174 @@
+/* Boar BBS sysop interface.
+ *
+ * Drawn the way the BBS itself looks on a terminal: the 16 VGA colours on
+ * black, double-line boxes with the title in the top edge, menu items with a
+ * highlighted hotkey that invert when selected, and input fields as the blue
+ * bars classic BBS software used. One monospace face for everything. */
+
+@font-face { font-family: "Plex Mono"; font-weight: 400; font-display: swap;
+  src: url("fonts/ibm-plex-mono-400-latin.woff2") format("woff2"); }
+@font-face { font-family: "Plex Mono"; font-weight: 600; font-display: swap;
+  src: url("fonts/ibm-plex-mono-600-latin.woff2") format("woff2"); }
+
+:root {
+  /* VGA, in ANSI order. */
+  --c0: #000000; --c1: #aa0000; --c2: #00aa00; --c3: #aa5500;
+  --c4: #0000aa; --c5: #aa00aa; --c6: #00aaaa; --c7: #aaaaaa;
+  --c8: #555555; --c9: #ff5555; --c10: #55ff55; --c11: #ffff55;
+  --c12: #5555ff; --c13: #ff55ff; --c14: #55ffff; --c15: #ffffff;
+
+  --bg: #050505;
+  --ink: var(--c7);
+  --bright: var(--c15);
+  --dim: #727272;
+  --line: var(--c8);
+  --title: var(--c11);
+  --key: var(--c14);
+  --ok: var(--c10);
+  --bad: var(--c9);
+  --warn: var(--c11);
+  --sysop: var(--c13);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--bg); color: var(--ink);
+  font: 400 15px/1.55 "Plex Mono", ui-monospace, Menlo, monospace;
+}
+main { width: min(100% - 2rem, 120ch); margin: 1.5rem auto 4rem; }
+a { color: var(--key); text-decoration: none; }
+a:hover { color: var(--bg); background: var(--key); }
+:focus-visible { outline: 2px solid var(--key); outline-offset: 1px; }
+::selection { background: var(--c7); color: var(--c0); }
+code { color: var(--bright); }
+b { color: var(--bright); font-weight: 600; }
+.dim { color: var(--dim); }
+.ok { color: var(--ok); }
+.bad { color: var(--bad); }
+.warn { color: var(--warn); }
+.nowrap { white-space: nowrap; }
+
+/* ── title bar and menu ─────────────────────────────────────────────────── */
+
+.bar {
+  display: flex; flex-wrap: wrap; gap: 0 2ch; align-items: center;
+  padding: 0.3rem 2ch; background: var(--c4); color: var(--bright);
+}
+.bar .bbs { color: var(--c11); font-weight: 600; }
+.bar .dim { color: #aab; }
+.bar .who { margin-left: auto; }
+.lamp { display: inline-block; width: 0.55em; height: 0.55em; margin-right: 1ch;
+  border-radius: 50%; background: var(--c8); }
+.lamp.on { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+
+.menu {
+  display: flex; flex-wrap: wrap; gap: 0.2rem 2.5ch;
+  padding: 0.45rem 2ch; border-bottom: 3px double var(--line);
+}
+
+/* A menu item or button: bracketed, hotkey lit, inverted when selected. */
+.item {
+  font: inherit; color: var(--ink); background: none; border: 0; padding: 0;
+  cursor: pointer; white-space: nowrap; text-decoration: none;
+}
+.item::before { content: "["; color: var(--dim); }
+.item::after { content: "]"; color: var(--dim); }
+.item .key { color: var(--key); font-weight: 600; }
+.item:hover, .item.on { background: var(--c7); color: var(--c0); }
+.item:hover::before, .item:hover::after, .item.on::before, .item.on::after,
+.item:hover .key, .item.on .key { color: var(--c0); }
+.item.primary { color: var(--bright); }
+.item.danger { color: var(--bad); }
+.item.danger:hover { background: var(--bad); color: var(--c0); }
+.item.ok { color: var(--ok); }
+.item.ok:hover { background: var(--ok); color: var(--c0); }
+.count { color: var(--c0); background: var(--warn); padding: 0 0.6ch; font-weight: 600; }
+.item.on .count { background: var(--c0); color: var(--warn); }
+
+/* ── boxes ──────────────────────────────────────────────────────────────── */
+
+.box {
+  position: relative; margin: 2rem 0 0;
+  border: 3px double var(--line); padding: 1.3rem 2ch 1rem;
+}
+.box > .title {
+  position: absolute; top: -0.9em; left: 2ch; margin: 0;
+  padding: 0 1ch; background: var(--bg);
+  color: var(--title); font-size: 1rem; font-weight: 600;
+}
+.box > :last-child { margin-bottom: 0; }
+.danger-zone { border-color: #6a2020; }
+.danger-zone > .title { color: var(--bad); }
+.split { display: grid; gap: 0 3ch; }
+@media (min-width: 900px) { .split { grid-template-columns: 1fr 1fr; } }
+
+.flash { margin: 0 0 1rem; padding: 0.4rem 1.5ch; border-left: 1ch solid var(--ok); color: var(--ok); background: #0c1a0c; }
+.flash.bad { border-color: var(--bad); color: var(--bad); background: #1d0909; }
+
+/* ── tables ─────────────────────────────────────────────────────────────── */
+
+table { width: 100%; border-collapse: collapse; }
+th { text-align: left; font-weight: 400; color: var(--dim); border-bottom: 1px dashed var(--line); padding: 0.2rem 1.5ch 0.3rem 0; }
+td { padding: 0.3rem 1.5ch 0.3rem 0; border-bottom: 1px solid #1a1a1a; vertical-align: top; }
+tr:hover td { background: #0d0d14; }
+td.num { color: var(--bright); text-align: right; }
+td.act { text-align: right; white-space: nowrap; }
+td.act form { display: inline; }
+.log .kind { color: var(--c6); }
+.log .k-login-failed .kind, .log .k-login-locked .kind { color: var(--bad); }
+.log .k-sysop .kind { color: var(--sysop); }
+.log .k-signup .kind { color: var(--ok); }
+.tag { padding: 0 0.7ch; margin-right: 1ch; color: var(--c0); font-weight: 600; }
+.tag.sysop { background: var(--sysop); }
+.tag.bad { background: var(--bad); }
+.tag.warn { background: var(--warn); }
+.facts { display: grid; grid-template-columns: max-content 1fr; gap: 0.25rem 3ch; margin: 0; }
+.facts dt { color: var(--dim); }
+.facts dd { margin: 0; color: var(--bright); }
+.filters { display: flex; flex-wrap: wrap; gap: 0.3rem 2ch; }
+
+/* ── forms: the BBS input bar ───────────────────────────────────────────── */
+
+input:not([type=checkbox]), textarea {
+  font: inherit; color: var(--bright); background: var(--c4);
+  border: 0; border-bottom: 2px solid var(--c12); padding: 0.3rem 1ch; width: 100%;
+}
+input::placeholder, textarea::placeholder { color: #8f8fd8; }
+input:focus, textarea:focus { outline: none; border-bottom-color: var(--key); background: #0000c4; }
+textarea { resize: vertical; min-height: 6rem; }
+input[type=checkbox] { accent-color: var(--c6); }
+label { display: block; color: var(--dim); }
+.row { display: flex; gap: 2ch; align-items: center; }
+.row input { flex: 1; }
+.stack { display: grid; gap: 0.7rem; }
+.stack .item { justify-self: start; }
+.check { color: var(--ink); }
+.actions { display: flex; flex-wrap: wrap; gap: 0.6rem 2ch; }
+.inline { display: inline; }
+.bar .item { color: var(--bright); }
+.bar .item .key { color: var(--c11); }
+
+.login { max-width: 52ch; margin: 18vh auto 0; }
+.login form { display: grid; gap: 0.9rem; margin: 0.5rem 0 1.2rem; }
+.login label { display: grid; gap: 0.3rem; }
+.login .item { justify-self: start; }
+
+/* ── posts and art ──────────────────────────────────────────────────────── */
+
+.post { border-bottom: 1px solid #1a1a1a; padding: 0.4rem 0; }
+.post summary { cursor: pointer; }
+.post summary::marker { color: var(--key); }
+.post .subj { color: var(--bright); }
+.post .body { white-space: pre-wrap; color: var(--ink); margin: 0.6rem 0 0.8rem 2ch; font: inherit; }
+
+.ansi {
+  margin: 0; padding: 1ch; background: #000; overflow-x: auto;
+  font: 400 15px/1.2 "Plex Mono", ui-monospace, monospace; width: max-content; max-width: 100%;
+}
+.f0 { color: var(--c0); } .f1 { color: var(--c1); } .f2 { color: var(--c2); } .f3 { color: var(--c3); }
+.f4 { color: var(--c4); } .f5 { color: var(--c5); } .f6 { color: var(--c6); } .f7 { color: var(--c7); }
+.f8 { color: var(--c8); } .f9 { color: var(--c9); } .f10 { color: var(--c10); } .f11 { color: var(--c11); }
+.f12 { color: var(--c12); } .f13 { color: var(--c13); } .f14 { color: var(--c14); } .f15 { color: var(--c15); }
+.b1 { background: var(--c1); } .b2 { background: var(--c2); } .b3 { background: var(--c3); }
+.b4 { background: var(--c4); } .b5 { background: var(--c5); } .b6 { background: var(--c6); } .b7 { background: var(--c7); }

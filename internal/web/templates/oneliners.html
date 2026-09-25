@@ -1,0 +1,21 @@
+{{define "content"}}
+<section class="box">
+  <h2 class="title">Oneliner wall</h2>
+  {{- if .Data}}
+  <table>
+    <tbody>
+    {{- range .Data}}
+    <tr>
+      <td class="nowrap">{{or .Author "(deleted)"}}</td>
+      <td>{{.Text}}</td>
+      <td class="dim nowrap">{{ago .PostedAt}}</td>
+      <td class="act"><form method="post" action="/oneliners/{{.ID}}/delete"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="item danger">remove</button></form></td>
+    </tr>
+    {{- end}}
+    </tbody>
+  </table>
+  {{- else}}
+  <p class="dim">The wall is empty.</p>
+  {{- end}}
+</section>
+{{end}}

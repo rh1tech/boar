@@ -1,0 +1,24 @@
+{{define "content"}}
+<p><a class="item" href="/boards">all boards</a></p>
+<section class="box">
+  <h2 class="title">{{.Data.Board.Name}}</h2>
+  <p>{{.Data.Board.Description}} {{if .Data.Board.SysopOnly}}<span class="tag sysop">sysops only</span>{{end}}</p>
+  {{- range .Data.Posts}}
+  <details class="post">
+    <summary><span class="subj">{{.Subject}}</span> <span class="dim">{{.Author}} · {{when .PostedAt}}</span></summary>
+    <pre class="body">{{.Body}}</pre>
+    <form method="post" action="/boards/{{$.Data.Board.ID}}/posts/{{.ID}}/delete"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="item danger">delete post</button></form>
+  </details>
+  {{- else}}
+  <p class="dim">No posts yet.</p>
+  {{- end}}
+</section>
+<section class="box danger-zone">
+  <h2 class="title">Delete {{.Data.Board.Name}}</h2>
+  <form method="post" action="/boards/{{.Data.Board.ID}}/delete" class="row">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input name="confirm" placeholder="Type {{.Data.Board.Name}} to confirm" autocomplete="off" required aria-label="Type the board name to confirm">
+    <button class="item danger">delete board and posts</button>
+  </form>
+</section>
+{{end}}

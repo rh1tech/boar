@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net"
+	"net/http"
 	"os"
 	"os/signal"
 	"sync"
@@ -20,6 +21,7 @@ import (
 	"boar/internal/doors"
 	"boar/internal/mailer"
 	"boar/internal/store"
+	"boar/internal/web"
 )
 
 const maxNodesLimit = 999
@@ -45,6 +47,8 @@ type options struct {
 	smtpUser   string
 	smtpFrom   string
 	publicAddr string
+
+	webAddr string
 }
 
 // smtpPasswordEnv holds the SMTP password, kept out of flags so it can't
@@ -79,6 +83,7 @@ func parseFlags() (options, error) {
 	flag.StringVar(&o.smtpUser, "smtp-user", "", "SMTP user name (password from $"+smtpPasswordEnv+")")
 	flag.StringVar(&o.smtpFrom, "smtp-from", "", "address emails are sent from")
 	flag.StringVar(&o.publicAddr, "public-address", "", `how emails tell people to call, e.g. "bbs.example.com:2222"`)
+	flag.StringVar(&o.webAddr, "web", "", `sysop web interface address, e.g. "127.0.0.1:8023" ("" disables it; put a TLS proxy in front)`)
 	flag.Parse()
 
 	switch {
@@ -159,6 +164,13 @@ func run() error {
 		log.Info("ssh listening", "addr", ln.Addr().String(), "host_key", o.hostKey)
 		servers = append(servers, func() error { return srv.ServeSSH(ctx, ln, key) })
 	}
+	if o.webAddr != "" {
+		serve, err := webServer(ctx, srv, o.webAddr, log)
+		if err != nil {
+			return err
+		}
+		servers = append(servers, serve)
+	}
 	log.Info("boar is up", "data", o.dataPath, "nodes", o.maxNodes)
 	err = serveAll(servers, stop)
 	log.Info("boar is down")
@@ -178,6 +190,42 @@ func serveAll(servers []func() error, stop context.CancelFunc) error {
 	}
 	wg.Wait()
 	return errors.Join(errs...)
+}
+
+// webServer starts the sysop web interface. It is plain HTTP and meant for
+// loopback: the proxy in front of it terminates TLS, and the session cookie is
+// marked Secure, so it is never sent over an unencrypted link from a browser.
+func webServer(ctx context.Context, srv *bbs.Server, addr string, log *slog.Logger) (func() error, error) {
+	handler, err := web.New(srv, log)
+	if err != nil {
+		return nil, err
+	}
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	hs := &http.Server{
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      30 * time.Second,
+		IdleTimeout:       2 * time.Minute,
+		MaxHeaderBytes:    32 << 10,
+		ErrorLog:          slog.NewLogLogger(log.Handler(), slog.LevelWarn),
+	}
+	log.Info("sysop web interface listening", "addr", ln.Addr().String())
+	return func() error {
+		go func() {
+			<-ctx.Done()
+			shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = hs.Shutdown(shutdown)
+		}()
+		if err := hs.Serve(ln); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+		return nil
+	}, nil
 }
 
 func promote(st *store.Store, handle string, log *slog.Logger) error {

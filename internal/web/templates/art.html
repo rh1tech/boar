@@ -1,0 +1,21 @@
+{{define "content"}}
+<section class="box">
+  <h2 class="title">Custom art</h2>
+  {{- if .Data}}
+  <p class="dim">Drop <code>NAME.ans</code> (CP437 ANSI) or <code>NAME.txt</code> (pipe codes) into the art folder on the server to replace a screen. Several variants are shown at random.</p>
+  <table>
+    <thead><tr><th>Screen</th><th>Files</th></tr></thead>
+    <tbody>
+    {{- range .Data}}
+    <tr>
+      <td>{{.Screen}}</td>
+      <td>{{range .Files}}<a class="item" href="/art/{{.}}">{{.}}</a> {{else}}<span class="dim">built-in</span>{{end}}</td>
+    </tr>
+    {{- end}}
+    </tbody>
+  </table>
+  {{- else}}
+  <p class="dim">No art folder is configured (start the BBS with <code>-art DIR</code>).</p>
+  {{- end}}
+</section>
+{{end}}

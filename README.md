@@ -54,6 +54,7 @@ The module targets Go 1.27. With the default `GOTOOLCHAIN=auto`, an older
 | `-approve-new-users` | `true`             | New callers wait for a sysop's approval    |
 | `-max-signups` | `20`                     | New accounts per day, across the whole BBS |
 | `-idle`     | `15m`                       | Hang up on callers idle this long          |
+| `-web`      |                             | Sysop web interface address, e.g. `127.0.0.1:8023` (off when empty) |
 | `-v`        | off                         | Debug logging                              |
 
 ## What callers get
@@ -228,6 +229,41 @@ Press `!` at the main menu. From there a sysop can:
 Sysop rights are checked again on every action, so a demotion takes effect
 straight away.
 
+## Sysop web interface
+
+`-web 127.0.0.1:8023` serves the sysop menu in a browser. It covers:
+- approving or rejecting new callers;
+- managing users: look up, mail, reset a password, lock, promote, delete;
+- kicking nodes and broadcasting;
+- the event log;
+- boards and their posts, news, and the oneliner wall;
+- custom art, previewed in the real VGA colours.
+
+It is the same set of actions as the `!` menu. They go through the same
+code, so a web kick hangs the caller up and a web approval tells them if
+they're online. Audit entries made from the web are marked `(web)`.
+
+Only unlocked sysops can sign in. There is no registration page: accounts
+are made on the BBS, and a sysop promotes them.
+- **Wrong logins:** a wrong password, an unknown handle, a locked account
+  and a non-sysop account all get the same message.
+- **Throttling:** logins share the telnet and SSH limits, both per address
+  and per handle.
+- **Every request** reloads the account, so a demotion or a lock ends a web
+  session straight away.
+- **Sessions:** kept in memory, ending after 30 idle minutes or 12 hours.
+- **Cookies and forms:** cookies are `Secure`, `HttpOnly` and
+  `SameSite=Strict`. Every form carries a per-session token and must come
+  from the same origin.
+- **No JavaScript:** the pages use none, so the Content-Security-Policy
+  forbids scripts outright.
+
+The listener speaks plain HTTP and is meant for loopback, behind a proxy
+that terminates TLS. The session cookie is `Secure`, so a browser only
+sends it over HTTPS. `deploy/nginx-boar-web.conf` is the vhost used for
+boar.rh1.tech. The BBS takes the caller's address from `X-Real-IP`, but only
+when the request comes from loopback.
+
 ## Layout
 
 ```
@@ -242,6 +278,7 @@ internal/doors/    door config, drop files, running door programs
 internal/bbs/      server, SSH transport, nodes, sessions, menus, mail,
                    boards, chat, sysop tools, screen layout
 internal/bbs/art/  built-in screens (*.ans), embedded into the binary
+internal/web/      sysop web interface: sessions, pages, ANSI art preview
 ```
 
 The schema is versioned with `PRAGMA user_version`. Migrations live in
@@ -324,14 +361,17 @@ Boar BBS on a Debian-style server over SSH. The remote user needs sudo. The
 script sets up:
 
 - the binaries in `/opt/boar/bin`, a `boar` system user, and a locked-down
-  systemd unit (`deploy/boar.service`) with telnet on port 23 and SSH on
-  2222;
+  systemd unit (`deploy/boar.service`) with telnet on port 23, SSH on 2222
+  and the sysop web interface on `127.0.0.1:8023`;
 - config in `/etc/boar`: `doors.json` (installed once, with Boar Hunt) and
   `boar.env`, where `BOAR_ARGS` adds flags and `BOAR_SMTP_PASSWORD` goes;
 - data in `/var/lib/boar`: the database, the SSH host key, custom art and
   drop files. Updates never touch it.
 
-Open ports 23 and 2222 in the firewall. Logs: `journalctl -u boar -f`.
+Open ports 23 and 2222 in the firewall. The web interface needs a TLS proxy.
+`deploy/nginx-boar-web.conf` is the nginx vhost, with a Let's Encrypt
+certificate. boar.rh1.tech points straight at the server rather than through
+Cloudflare, because telnet can't go through it. Logs: `journalctl -u boar -f`.
 
 ## Development
 

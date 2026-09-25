@@ -1,0 +1,24 @@
+{{define "content"}}
+<section class="box">
+  <h2 class="title">Post a bulletin</h2>
+  <form method="post" action="/news" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input name="title" maxlength="{{.Data.MaxTitle}}" placeholder="Title" required aria-label="Title">
+    <textarea name="body" rows="8" placeholder="Pipe colour codes work here, as on the BBS" required aria-label="Bulletin text"></textarea>
+    <button class="item">post</button>
+  </form>
+  <p class="dim">Callers are offered new bulletins at login, and everyone online sees the title now.</p>
+</section>
+<section class="box">
+  <h2 class="title">Bulletins</h2>
+  {{- range .Data.Bulletins}}
+  <details class="post">
+    <summary><span class="subj">{{.Title}}</span> <span class="dim">{{.Author}} · {{when .PostedAt}}</span></summary>
+    <pre class="body">{{.Body}}</pre>
+    <form method="post" action="/news/{{.ID}}/delete"><input type="hidden" name="csrf" value="{{$.CSRF}}"><button class="item danger">delete bulletin</button></form>
+  </details>
+  {{- else}}
+  <p class="dim">No bulletins yet.</p>
+  {{- end}}
+</section>
+{{end}}

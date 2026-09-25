@@ -1,0 +1,27 @@
+{{define "content"}}
+<section class="box">
+  <h2 class="title">New callers waiting for approval</h2>
+  {{- if .Data}}
+  <p class="dim">Until approved they can read the boards and news and mail a sysop, but not post, chat, page or open doors.</p>
+  <table>
+    <thead><tr><th>Handle</th><th>Location</th><th>Signed up</th><th>Calls</th><th></th></tr></thead>
+    <tbody>
+    {{- range .Data}}
+    <tr>
+      <td><a href="/users/{{.ID}}">{{.Handle}}</a></td>
+      <td>{{.Location}}</td>
+      <td class="dim">{{when .CreatedAt}} ({{ago .CreatedAt}})</td>
+      <td class="num">{{.Calls}}</td>
+      <td class="act">
+        <form method="post" action="/users/{{.ID}}/approve"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="back" value="/callers"><button class="item ok">approve</button></form>
+        <a class="item danger" href="/users/{{.ID}}#delete">reject…</a>
+      </td>
+    </tr>
+    {{- end}}
+    </tbody>
+  </table>
+  {{- else}}
+  <p class="dim">Nobody is waiting.</p>
+  {{- end}}
+</section>
+{{end}}

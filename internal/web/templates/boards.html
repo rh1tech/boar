@@ -1,0 +1,33 @@
+{{define "content"}}
+<section class="box">
+  <h2 class="title">Message boards</h2>
+  {{- if .Data.Boards}}
+  <table>
+    <thead><tr><th>Board</th><th>Description</th><th>Posts</th><th>Last post</th><th>Who posts</th></tr></thead>
+    <tbody>
+    {{- range .Data.Boards}}
+    <tr>
+      <td><a href="/boards/{{.ID}}">{{.Name}}</a></td>
+      <td>{{.Description}}</td>
+      <td class="num">{{.Posts}}</td>
+      <td class="dim">{{ago .LastPost}}</td>
+      <td>{{if .SysopOnly}}<span class="tag sysop">sysops only</span>{{else}}<span class="dim">everyone</span>{{end}}</td>
+    </tr>
+    {{- end}}
+    </tbody>
+  </table>
+  {{- else}}
+  <p class="dim">No boards yet.</p>
+  {{- end}}
+</section>
+<section class="box">
+  <h2 class="title">New board</h2>
+  <form method="post" action="/boards" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input name="name" maxlength="{{.Data.MaxName}}" placeholder="Name" required aria-label="Board name">
+    <input name="description" maxlength="{{.Data.MaxDesc}}" placeholder="Description" aria-label="Description">
+    <label class="check"><input type="checkbox" name="sysop_only"> only sysops may post (like Announcements)</label>
+    <button class="item">create</button>
+  </form>
+</section>
+{{end}}

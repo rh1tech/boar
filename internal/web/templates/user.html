@@ -1,0 +1,81 @@
+{{define "content"}}
+{{- $u := .Data.U}}
+<p><a class="item" href="/users">all users</a></p>
+<section class="box">
+  <h2 class="title">{{$u.Handle}}</h2>
+  <dl class="facts">
+    <dt>Status</dt><dd>{{template "flags" $u}}</dd>
+    <dt>Location</dt><dd>{{or $u.Location "-"}}</dd>
+    <dt>Member since</dt><dd>{{when $u.CreatedAt}}</dd>
+    <dt>Last call</dt><dd>{{when $u.LastLogin}} ({{ago $u.LastLogin}})</dd>
+    <dt>Calls</dt><dd>{{$u.Calls}}</dd>
+    <dt>Email</dt><dd>{{if $u.Email}}verified{{else}}<span class="dim">none</span>{{end}}</dd>
+    <dt>Online</dt><dd>{{range .Data.Online}}node {{.ID}}: {{.Activity}} {{end}}{{if not .Data.Online}}<span class="dim">no</span>{{end}}</dd>
+  </dl>
+</section>
+
+{{- if .Data.Self}}
+<p class="dim">This is your own account. Locking, demoting and deleting yourself are not allowed; change your password on the BBS.</p>
+{{- else}}
+<div class="split">
+  <section class="box">
+    <h2 class="title">Account</h2>
+    <div class="actions">
+    {{- if not $u.Validated}}
+      <form method="post" action="/users/{{$u.ID}}/approve"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="item ok">approve</button></form>
+    {{- end}}
+    {{- if $u.Locked}}
+      <form method="post" action="/users/{{$u.ID}}/unlock"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="item">unlock</button></form>
+    {{- else}}
+      <form method="post" action="/users/{{$u.ID}}/lock"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="item danger">lock (and hang up)</button></form>
+    {{- end}}
+    {{- if $u.Sysop}}
+      <form method="post" action="/users/{{$u.ID}}/demote"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="item danger">remove sysop rights</button></form>
+    {{- else}}
+      <form method="post" action="/users/{{$u.ID}}/promote"><input type="hidden" name="csrf" value="{{.CSRF}}"><button class="item">make sysop</button></form>
+    {{- end}}
+    </div>
+  </section>
+  <section class="box">
+    <h2 class="title">New password</h2>
+    <form method="post" action="/users/{{$u.ID}}/password" class="stack">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input type="password" name="password" minlength="{{.Data.MinPass}}" maxlength="{{.Data.MaxPass}}" autocomplete="new-password" placeholder="New password" required aria-label="New password">
+      <input type="password" name="confirm" minlength="{{.Data.MinPass}}" maxlength="{{.Data.MaxPass}}" autocomplete="new-password" placeholder="Again" required aria-label="New password again">
+      <button class="item">set password</button>
+    </form>
+  </section>
+</div>
+{{- end}}
+
+<section class="box">
+  <h2 class="title">Mail {{$u.Handle}}</h2>
+  <form method="post" action="/users/{{$u.ID}}/mail" class="stack">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input name="subject" maxlength="{{.Data.MaxSubj}}" placeholder="Subject" required aria-label="Subject">
+    <textarea name="body" rows="6" placeholder="Message" required aria-label="Message"></textarea>
+    <button class="item">send as {{.User.Handle}}</button>
+  </form>
+  <p class="dim">It arrives in their BBS mailbox. If they are online they get a notice, and an email copy if they asked for one.</p>
+</section>
+
+{{- if .Data.Events}}
+<section class="box">
+  <h2 class="title">Recent events</h2>
+  {{template "events" .Data.Events}}
+</section>
+{{- end}}
+
+{{- if not .Data.Self}}
+<section class="box danger-zone" id="delete">
+  <h2 class="title">Delete {{$u.Handle}}</h2>
+  <form method="post" action="/users/{{$u.ID}}/delete" class="row">
+    <input type="hidden" name="csrf" value="{{.CSRF}}">
+    <input type="hidden" name="back" value="/users">
+    <input name="confirm" placeholder="Type {{$u.Handle}} to confirm" autocomplete="off" required aria-label="Type the handle to confirm">
+    <button class="item danger">delete for good</button>
+  </form>
+  <p class="dim">Hangs them up and removes the account and their inbox. This is also how you reject a new caller.</p>
+</section>
+{{- end}}
+{{end}}

@@ -1,0 +1,47 @@
+{{define "content"}}
+<section class="box">
+  <h2 class="title">Who's online</h2>
+  {{- if .Data.Nodes}}
+  <table>
+    <thead><tr><th>Node</th><th>Handle</th><th>Location</th><th>Doing</th><th>Via</th><th>Since</th><th></th></tr></thead>
+    <tbody>
+    {{- range .Data.Nodes}}
+    <tr>
+      <td class="num">{{.ID}}</td>
+      <td>{{if .UserID}}<a href="/users/{{.UserID}}">{{.Handle}}</a>{{else}}<span class="dim">logging in</span>{{end}}</td>
+      <td>{{.Location}}</td>
+      <td>{{.Activity}}</td>
+      <td>{{if .Secure}}SSH{{else}}<span class="warn">telnet</span>{{end}}</td>
+      <td class="dim">{{ago .Since}}</td>
+      <td class="act"><form method="post" action="/kick"><input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="node" value="{{.ID}}"><button class="item danger">kick</button></form></td>
+    </tr>
+    {{- end}}
+    </tbody>
+  </table>
+  {{- else}}
+  <p class="dim">Nobody is connected.</p>
+  {{- end}}
+</section>
+
+<div class="split">
+  <section class="box">
+    <h2 class="title">Broadcast</h2>
+    <form method="post" action="/broadcast" class="row">
+      <input type="hidden" name="csrf" value="{{.CSRF}}">
+      <input name="text" maxlength="70" placeholder="One line to everyone online" required aria-label="Broadcast text">
+      <button class="item">send</button>
+    </form>
+    <p class="dim">Callers see it at their next prompt, signed "Sysop {{.User.Handle}}".</p>
+  </section>
+  <section class="box">
+    <h2 class="title">The board</h2>
+    <p><b>{{plural .Data.Members "member"}}</b>{{if .Data.Waiting}}, <a href="/callers" class="warn">{{len .Data.Waiting}} waiting for approval</a>{{else}}, nobody waiting for approval{{end}}.</p>
+  </section>
+</div>
+
+<section class="box">
+  <h2 class="title">Latest events</h2>
+  {{template "events" .Data.Events}}
+  <p><a class="item" href="/events">whole log</a></p>
+</section>
+{{end}}
