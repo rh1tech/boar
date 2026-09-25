@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"boar/internal/store"
 	"boar/internal/term"
 )
 
@@ -113,6 +114,11 @@ func (s *session) screenTokens() map[string]string {
 		"CALLS":    fmt.Sprint(s.user.Calls),
 		"TIME":     time.Now().Format("Monday, January 2 2006  15:04 MST"),
 		"DURATION": shortDuration(time.Since(s.start)),
+		// The signup rules, from the validator itself, so no screen can
+		// promise a limit the BBS does not enforce.
+		"MINHANDLE": fmt.Sprint(store.MinHandleLen),
+		"MAXHANDLE": fmt.Sprint(store.MaxHandleLen),
+		"MINPASS":   fmt.Sprint(store.MinPasswordLen),
 	}
 }
 

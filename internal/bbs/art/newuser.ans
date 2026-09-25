@@ -1,7 +1,7 @@
 
 |07  Pick a |15handle|07: the name other callers see and send mail to.
-|08  3-20 characters: letters, digits, spaces, _ - .  Start with a letter.
+|08  @MINHANDLE@-@MAXHANDLE@ characters: letters, digits, spaces, _ - .  Start with a letter.
 
-|07  Then a |15password|07 of at least 6 characters.
+|07  Then a |15password|07 of at least @MINPASS@ characters.
 |08  Leave the handle empty to go back.
 

@@ -202,10 +202,11 @@ func (s *session) register() (store.User, bool, error) {
 	}
 	s.setActivity("New user signup")
 	s.header("New Caller")
-	if shown, err := s.showCustomArt("newuser", s.screenTokens()); err != nil {
+	tokens := s.screenTokens()
+	if shown, err := s.showCustomArt("newuser", tokens); err != nil {
 		return store.User{}, false, err
 	} else if !shown {
-		if err := s.showArt("newuser", nil); err != nil {
+		if err := s.showArt("newuser", tokens); err != nil {
 			return store.User{}, false, err
 		}
 	}

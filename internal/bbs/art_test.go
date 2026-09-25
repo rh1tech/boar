@@ -3,10 +3,13 @@
 package bbs
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"boar/internal/store"
 )
 
 func writeArt(t *testing.T, dir, name, content string) {
@@ -105,4 +108,16 @@ func TestOversizedArtFallsBack(t *testing.T) {
 	c.expect("Choice [1]:")
 	c.line("3")
 	c.expect("the wild boar") // built-in welcome
+}
+
+// The built-in signup screen states the rules the validator enforces, from the
+// same constants: it once said six characters while signup demanded eight.
+func TestNewUserScreenStatesTheRealLimits(t *testing.T) {
+	addr, _ := startServer(t, Config{})
+	c := dial(t, addr, "alice")
+	c.connectPlain()
+	c.line("new")
+	c.expect(fmt.Sprintf("%d-%d characters", store.MinHandleLen, store.MaxHandleLen))
+	c.expect(fmt.Sprintf("of at least %d characters", store.MinPasswordLen))
+	c.expect("Choose a handle:")
 }

@@ -164,7 +164,8 @@ approximations without color.
 Add variants such as `welcome.2.ans` or `welcome.3.txt` and one is picked at
 random on each call. These tokens are filled in on every screen: `@BBS@`,
 `@NODE@`, `@NODES@`, `@ONLINE@`, `@MEMBERS@`, `@HANDLE@`, `@LOCATION@`,
-`@CALLS@`, `@TIME@` and `@DURATION@`. Sysop menu → Custom art previews each
+`@CALLS@`, `@TIME@` and `@DURATION@`, plus the signup rules as the BBS
+enforces them: `@MINHANDLE@`, `@MAXHANDLE@` and `@MINPASS@`. Sysop menu → Custom art previews each
 file.
 
 ## Doors
