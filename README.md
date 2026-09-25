@@ -264,6 +264,36 @@ sends it over HTTPS. `deploy/nginx-boar-web.conf` is the vhost used for
 boar.rh1.tech. The BBS takes the caller's address from `X-Real-IP`, but only
 when the request comes from loopback.
 
+## FidoNet (in progress)
+
+Boar is joining FidoNet through Region 41 (Greece). The mailer is binkd,
+Debian's package, with the config in `deploy/binkd.cfg`, installed on the
+server as `/etc/binkd/binkd.cfg`.
+- **Address:** 2:410/9999 for now, the temporary address Policy 4.07 suggests
+  for a system applying to a net.
+- **Where mail lives:** binkd's spool in `/var/spool/ftn` (`in`,
+  `in.insecure`, `tmp`, `out`), owned by the `ftn` group. The `boar` user is
+  a member.
+- **Links:** passworded links go in `/etc/binkd/nodes.inc`, which is not in
+  the repository.
+- **Firewall:** binkp listens on 24554, open to everyone.
+
+`internal/ftn` is the FTN layer:
+- addresses, and Type 2+ packets (FTS-0001, FSC-0039/0048);
+- control lines, and echomail SEEN-BY and PATH;
+- CHRS character sets: CP437, CP866, Latin-1 and UTF-8;
+- binkd's outbound layout (FTS-5005).
+
+Until the BBS tosses mail itself, `boar-ftn` is the toolbox:
+
+```sh
+boar-ftn netmail -from 2:410/9999 -to 2:41/0 -to-name "Petros Argyrakis" \
+    -subject "Node application" < letter.txt     # queued crash, binkd calls now
+boar-ftn show /var/spool/ftn/in/*.pkt           # read what arrived
+```
+
+Run it as the `ftn` user, or as `boar`, so binkd can read what it writes.
+
 ## Layout
 
 ```

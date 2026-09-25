@@ -14,7 +14,8 @@ trap 'rm -rf "$build"' EXIT
 echo "building..."
 (cd "$here" &&
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$build/boar" ./cmd/boar &&
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$build/boar-door-example" ./cmd/boar-door-example)
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$build/boar-door-example" ./cmd/boar-door-example &&
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "-s -w" -o "$build/boar-ftn" ./cmd/boar-ftn)
 cp "$here/deploy/boar.service" "$here/deploy/doors.json" "$build/"
 
 echo "uploading to $target..."
@@ -27,7 +28,7 @@ dir="$1"
 id boar >/dev/null 2>&1 || useradd --system --home-dir /var/lib/boar --shell /usr/sbin/nologin boar
 install -d -m 0755 /opt/boar/bin /etc/boar
 install -d -m 0700 -o boar -g boar /var/lib/boar /var/lib/boar/art /var/lib/boar/doors
-install -m 0755 "$dir/boar" "$dir/boar-door-example" /opt/boar/bin/
+install -m 0755 "$dir/boar" "$dir/boar-door-example" "$dir/boar-ftn" /opt/boar/bin/
 [ -e /etc/boar/doors.json ] || install -m 0644 "$dir/doors.json" /etc/boar/doors.json
 [ -e /etc/boar/boar.env ] || install -m 0600 /dev/null /etc/boar/boar.env
 install -m 0644 "$dir/boar.service" /etc/systemd/system/boar.service
