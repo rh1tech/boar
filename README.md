@@ -290,7 +290,12 @@ Until the BBS tosses mail itself, `boar-ftn` is the toolbox:
 boar-ftn netmail -from 2:410/9999 -to 2:41/0 -to-name "Petros Argyrakis" \
     -subject "Node application" < letter.txt     # queued crash, binkd calls now
 boar-ftn show /var/spool/ftn/in/*.pkt           # read what arrived
+boar-ftn notify -to you@example.com FILE        # email what arrived
 ```
+
+binkd runs `notify` for every packet and mail bundle it receives, through its
+`exec` line in `deploy/binkd.cfg`. The sysop gets each netmail by email, and
+the file stays in the inbound for the BBS to import.
 
 Run it as the `ftn` user, or as `boar`, so binkd can read what it writes.
 
