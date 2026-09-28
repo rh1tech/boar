@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Boar BBS: a bulletin board you call over SSH or telnet</title>
+<meta name="description" content="Boar BBS is an old-style bulletin board: private mail, message boards, chat, a door game and ANSI art. Call it with ssh bbs@boar.rh1.tech or telnet boar.rh1.tech.">
+<link rel="canonical" href="https://boar.rh1.tech/">
+<link rel="alternate" hreflang="en" href="https://boar.rh1.tech/">
+<link rel="alternate" hreflang="ru" href="https://boar.rh1.tech/ru/">
+<link rel="alternate" hreflang="x-default" href="https://boar.rh1.tech/">
+<meta name="theme-color" content="#0000aa">
+<meta name="color-scheme" content="dark">
+<link rel="icon" href="/assets/favicon.png" type="image/png">
+<link rel="stylesheet" href="/assets/site.css">
+</head>
+<body>
+<header class="bar">
+  <span class="bbs">Boar BBS</span>
+  <span class="host">boar.rh1.tech</span>
+  <nav aria-label="Language">
+    <a class="item" href="/" hreflang="en" lang="en" aria-current="page"><span class="key">E</span>nglish</a>
+    <a class="item" href="/ru/" hreflang="ru" lang="ru"><span class="key">Р</span>усский</a>
+  </nav>
+</header>
+
+<main>
+  <figure class="screen">
+    <pre role="img" aria-label="The Boar BBS login screen: the word BOAR in white and yellow block letters, a framed banner reading Boar BBS, the wild boar, private mail, est. 2026, and the prompt Handle (or NEW to register)."><span class="f7 b0">                       </span><span class="f15 b0">██████</span><span class="f8 b0">╗  </span><span class="f15 b0">██████</span><span class="f8 b0">╗  </span><span class="f15 b0">█████</span><span class="f8 b0">╗ </span><span class="f15 b0">██████</span><span class="f8 b0">╗ </span>
+<span class="f8 b0">                       </span><span class="f11 b0">██</span><span class="f8 b0">╔══</span><span class="f11 b0">██</span><span class="f8 b0">╗</span><span class="f11 b0">██</span><span class="f8 b0">╔═══</span><span class="f11 b0">██</span><span class="f8 b0">╗</span><span class="f11 b0">██</span><span class="f8 b0">╔══</span><span class="f11 b0">██</span><span class="f8 b0">╗</span><span class="f11 b0">██</span><span class="f8 b0">╔══</span><span class="f11 b0">██</span><span class="f8 b0">╗</span>
+<span class="f8 b0">                       </span><span class="f11 b0">██████</span><span class="f8 b0">╔╝</span><span class="f11 b0">██</span><span class="f8 b0">║   </span><span class="f11 b0">██</span><span class="f8 b0">║</span><span class="f11 b0">███████</span><span class="f8 b0">║</span><span class="f11 b0">██████</span><span class="f8 b0">╔╝</span>
+<span class="f8 b0">                       </span><span class="f3 b0">██</span><span class="f8 b0">╔══</span><span class="f3 b0">██</span><span class="f8 b0">╗</span><span class="f3 b0">██</span><span class="f8 b0">║   </span><span class="f3 b0">██</span><span class="f8 b0">║</span><span class="f3 b0">██</span><span class="f8 b0">╔══</span><span class="f3 b0">██</span><span class="f8 b0">║</span><span class="f3 b0">██</span><span class="f8 b0">╔══</span><span class="f3 b0">██</span><span class="f8 b0">╗</span>
+<span class="f8 b0">                       </span><span class="f3 b0">██████</span><span class="f8 b0">╔╝╚</span><span class="f3 b0">██████</span><span class="f8 b0">╔╝</span><span class="f3 b0">██</span><span class="f8 b0">║  </span><span class="f3 b0">██</span><span class="f8 b0">║</span><span class="f3 b0">██</span><span class="f8 b0">║  </span><span class="f3 b0">██</span><span class="f8 b0">║</span>
+<span class="f8 b0">                       ╚═════╝  ╚═════╝ ╚═╝  ╚═╝╚═╝  ╚═╝</span>
+
+<span class="f7 b0">         </span><span class="f8 b0">┌─ </span><span class="f11 b0">Boar BBS </span><span class="f8 b0">────────────────────────────────────────────────┐</span>
+<span class="f8 b0">         │ </span><span class="f7 b0">        the wild boar </span><span class="f3 b0">·</span><span class="f7 b0"> private mail </span><span class="f3 b0">·</span><span class="f7 b0"> est. 2026         </span><span class="f8 b0"> │</span>
+<span class="f8 b0">         └───────────────────────────────────────────────────────────┘</span>
+
+<span class="f7 b0"> Handle </span><span class="f8 b0">(or </span><span class="f15 b0">NEW</span><span class="f8 b0"> to register)</span><span class="f7 b0">: </span><span class="cursor" aria-hidden="true"></span></pre>
+    <figcaption>What a terminal shows when you call, drawn from the real login screen.</figcaption>
+  </figure>
+
+  <h1>NO CARRIER: that page isn't here.</h1>
+  <p class="lead">Boar is an old-style BBS that runs today. You connect with SSH or telnet, pick a handle, and you're in. There's private mail, message boards, live chat, a door game and a wall of one-liners, all in ANSI colour with CP437 block art.</p>
+
+  <section class="box" aria-labelledby="call">
+    <h2 id="call">How to call</h2>
+    <div class="way">
+      <h3>SSH <span class="tag">encrypted</span></h3>
+      <p class="cmd">ssh bbs@boar.rh1.tech</p>
+      <p>Any user name works: you sign in to the BBS itself after connecting. Once you have an account you can add your SSH key under Settings, and then this command logs you straight in.</p>
+    </div>
+    <div class="way">
+      <h3>Telnet</h3>
+      <p class="cmd">telnet boar.rh1.tech</p>
+      <p>Port 23. Telnet sends everything unencrypted, your password included, so use SSH when you can.</p>
+    </div>
+    <div class="way">
+      <h3>A BBS client</h3>
+      <p>SyncTERM, NetRunner or any other ANSI-BBS client works. Add <code>boar.rh1.tech</code>, telnet on port 23 or SSH on port 22, and pick option 2 (CP437) when the BBS asks about your terminal.</p>
+    </div>
+    <p class="dim">The first time SSH asks about the server's key, check that it's <span class="fp">SHA256:xMvzbhi5k5OnnNhmTObOjBzk6nGVrIRYRJGDP4aPNuI</span> (ED25519)</p>
+  </section>
+
+  <div class="split">
+    <section class="box" aria-labelledby="first">
+      <h2 id="first">Your first call</h2>
+      <ol><li>Choose your terminal: <b>1</b> for UTF-8 (macOS Terminal, iTerm2, PuTTY), <b>2</b> for CP437 (SyncTERM and other BBS clients), <b>3</b> for plain ASCII.</li><li>Type <b>NEW</b> at the handle prompt, then choose a handle and a password of at least 8 characters.</li><li>Until a sysop approves the account you can read the boards and the news and mail a sysop. Once you're approved, everything else opens up.</li><li>Use a window at least 80 columns wide. Long output pauses at <code>-- more --</code>.</li></ol>
+    </section>
+    <section class="box" aria-labelledby="inside">
+      <h2 id="inside">What's inside</h2>
+      <dl class="inside"><dt>Mail</dt><dd>Private messages with threads, quoting and search. One message can go to several callers.</dd><dt>Boards</dt><dd>Public message boards, with a scan for everything new since your last call.</dd><dt>Chat</dt><dd>Live chat rooms, and one-line pages to anyone who's online.</dd><dt>Doors</dt><dd>Boar Hunt, a small door game.</dd><dt>The wall</dt><dd>One-liners shown at login, and news from the sysop.</dd><dt>Email</dt><dd>If you want it, a notice or a copy of new mail, sent only to an address you've verified.</dd></dl>
+    </section>
+  </div>
+
+  <section class="box" aria-labelledby="fido">
+    <h2 id="fido">FidoNet</h2>
+    <p>Boar has applied to join FidoNet, the network BBSes have used since the 1980s to exchange mail. Once it's listed, you'll be able to send netmail and read echomail from the BBS.</p>
+  </section>
+
+  <section class="box" aria-labelledby="rules">
+    <h2 id="rules">House rules</h2>
+    <p>Be decent to other callers. No spam, no advertising, and no attempts to break the system. A sysop can lock accounts that don't play along.</p>
+    <p>The BBS keeps your handle, a hash of your password, your messages and a log of logins. This page sets no cookies and loads nothing from other sites.</p>
+  </section>
+</main>
+
+<footer>
+  <p>Boar BBS is free software. Questions? Call the BBS and mail a sysop.</p>
+  <p>© 2026 Mikhail Matveev · <a href="https://github.com/rh1tech/boar">github.com/rh1tech/boar</a> · GPL-3.0</p>
+</footer>
+</body>
+</html>

@@ -229,6 +229,15 @@ Press `!` at the main menu. From there a sysop can:
 Sysop rights are checked again on every action, so a demotion takes effect
 straight away.
 
+## Public page
+
+`site/` is boar.rh1.tech: how to call the BBS and what it offers, in English
+(`/`) and Russian (`/ru/`), drawn like the BBS. It is static HTML with no
+scripts. The welcome screen at the top was rendered from a real CP437
+telnet session by the sysop interface's ANSI renderer. The live lines
+(node, online count, date) were cut, so the snapshot never goes stale.
+Publish it with `deploy/site.sh`; the nginx site is `deploy/nginx-boar-site.conf`.
+
 ## Sysop web interface
 
 `-web 127.0.0.1:8023` serves the sysop menu in a browser. It covers:
