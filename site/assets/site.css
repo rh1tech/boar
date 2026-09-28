@@ -82,7 +82,6 @@ main { width: min(100% - 2rem, 88ch); margin: 2rem auto 3rem; }
      as on a terminal, so full blocks touch. */
   font: 400 clamp(8px, 1.72vw, 15px)/1 Menlo, "DejaVu Sans Mono", Consolas, "Liberation Mono", monospace;
 }
-.screen figcaption { color: var(--dim); font-size: 0.85rem; padding-top: 0.4rem; }
 .cursor { display: inline-block; width: 0.6em; height: 1em; vertical-align: -0.12em; background: var(--c7); }
 @media (prefers-reduced-motion: no-preference) {
   .cursor { animation: blink 1.1s steps(1) infinite; }

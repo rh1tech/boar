@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Boar BBS: BBS, в которую звонят по SSH и telnet</title>
-<meta name="description" content="Boar BBS — BBS в старом духе: личная почта, форумы, чат, дверная игра и ANSI-арт. Подключение: ssh bbs@boar.rh1.tech или telnet boar.rh1.tech.">
+<title>Boar BBS: BBS, на которую заходят по SSH и telnet</title>
+<meta name="description" content="Boar BBS — BBS в классическом духе: личная почта, конференции, чат, игры и ANSI-графика. Подключение: ssh bbs@boar.rh1.tech или telnet boar.rh1.tech.">
 <link rel="canonical" href="https://boar.rh1.tech/ru/">
 <link rel="alternate" hreflang="en" href="https://boar.rh1.tech/">
 <link rel="alternate" hreflang="ru" href="https://boar.rh1.tech/ru/">
@@ -25,8 +25,8 @@
 </header>
 
 <main>
-  <figure class="screen">
-    <pre role="img" aria-label="Экран входа Boar BBS: слово BOAR белыми и жёлтыми блочными буквами, рамка с надписью Boar BBS, the wild boar, private mail, est. 2026, и приглашение Handle (or NEW to register)."><span class="f7 b0">                       </span><span class="f15 b0">██████</span><span class="f8 b0">╗  </span><span class="f15 b0">██████</span><span class="f8 b0">╗  </span><span class="f15 b0">█████</span><span class="f8 b0">╗ </span><span class="f15 b0">██████</span><span class="f8 b0">╗ </span>
+  <div class="screen">
+    <pre role="img" aria-label="Экран входа Boar BBS: надпись BOAR крупными блочными буквами, рамка с заголовком Boar BBS и приглашение Handle (or NEW to register)."><span class="f7 b0">                       </span><span class="f15 b0">██████</span><span class="f8 b0">╗  </span><span class="f15 b0">██████</span><span class="f8 b0">╗  </span><span class="f15 b0">█████</span><span class="f8 b0">╗ </span><span class="f15 b0">██████</span><span class="f8 b0">╗ </span>
 <span class="f8 b0">                       </span><span class="f11 b0">██</span><span class="f8 b0">╔══</span><span class="f11 b0">██</span><span class="f8 b0">╗</span><span class="f11 b0">██</span><span class="f8 b0">╔═══</span><span class="f11 b0">██</span><span class="f8 b0">╗</span><span class="f11 b0">██</span><span class="f8 b0">╔══</span><span class="f11 b0">██</span><span class="f8 b0">╗</span><span class="f11 b0">██</span><span class="f8 b0">╔══</span><span class="f11 b0">██</span><span class="f8 b0">╗</span>
 <span class="f8 b0">                       </span><span class="f11 b0">██████</span><span class="f8 b0">╔╝</span><span class="f11 b0">██</span><span class="f8 b0">║   </span><span class="f11 b0">██</span><span class="f8 b0">║</span><span class="f11 b0">███████</span><span class="f8 b0">║</span><span class="f11 b0">██████</span><span class="f8 b0">╔╝</span>
 <span class="f8 b0">                       </span><span class="f3 b0">██</span><span class="f8 b0">╔══</span><span class="f3 b0">██</span><span class="f8 b0">╗</span><span class="f3 b0">██</span><span class="f8 b0">║   </span><span class="f3 b0">██</span><span class="f8 b0">║</span><span class="f3 b0">██</span><span class="f8 b0">╔══</span><span class="f3 b0">██</span><span class="f8 b0">║</span><span class="f3 b0">██</span><span class="f8 b0">╔══</span><span class="f3 b0">██</span><span class="f8 b0">╗</span>
@@ -38,56 +38,55 @@
 <span class="f8 b0">         └───────────────────────────────────────────────────────────┘</span>
 
 <span class="f7 b0"> Handle </span><span class="f8 b0">(or </span><span class="f15 b0">NEW</span><span class="f8 b0"> to register)</span><span class="f7 b0">: </span><span class="cursor" aria-hidden="true"></span></pre>
-    <figcaption>Так выглядит вход в терминале. Нарисовано с настоящего экрана BBS.</figcaption>
-  </figure>
+  </div>
 
-  <h1>BBS, в которую звонят из терминала.</h1>
-  <p class="lead">Boar — BBS в старом духе, которая работает сегодня. Подключаетесь по SSH или telnet, выбираете ник, и вы внутри. Есть личная почта, форумы, живой чат, дверная игра и стена однострочников, всё в ANSI-цвете и с блочной графикой CP437.</p>
+  <h1>BBS, на которую заходят из терминала.</h1>
+  <p class="lead">Boar — BBS в классическом духе, только работает она сейчас. Подключаетесь по SSH или telnet, заводите ник — и можно начинать. Здесь есть личная почта, конференции, чат, игры и стена коротких сообщений, а всё оформление — ANSI-цвет и псевдографика CP437.</p>
 
   <section class="box" aria-labelledby="call">
-    <h2 id="call">Как позвонить</h2>
+    <h2 id="call">Как подключиться</h2>
     <div class="way">
       <h3>SSH <span class="tag">шифрование</span></h3>
       <p class="cmd">ssh bbs@boar.rh1.tech</p>
-      <p>Имя пользователя любое: вход в саму BBS происходит уже после подключения. Когда появится аккаунт, добавьте свой SSH-ключ в настройках, и эта команда будет пускать сразу, без пароля.</p>
+      <p>Имя пользователя может быть любым: на саму BBS вы входите уже после подключения. Когда заведёте учётную запись, добавьте свой SSH-ключ в настройках — и эта команда будет пускать сразу, без пароля.</p>
     </div>
     <div class="way">
       <h3>Telnet</h3>
       <p class="cmd">telnet boar.rh1.tech</p>
-      <p>Порт 23. Telnet передаёт всё открытым текстом, включая пароль, поэтому по возможности используйте SSH.</p>
+      <p>Порт 23. Telnet передаёт всё в открытом виде, включая пароль, поэтому лучше пользоваться SSH.</p>
     </div>
     <div class="way">
       <h3>BBS-клиент</h3>
-      <p>Подойдёт SyncTERM, NetRunner или любой другой ANSI-клиент. Добавьте <code>boar.rh1.tech</code>, telnet на порту 23 или SSH на порту 22, и выберите вариант 2 (CP437), когда BBS спросит про терминал.</p>
+      <p>Подойдёт SyncTERM, NetRunner или любая другая программа для ANSI-BBS. Укажите адрес <code>boar.rh1.tech</code>, telnet на порту 23 или SSH на порту 22, а на вопрос о терминале ответьте 2 (CP437).</p>
     </div>
-    <p class="dim">Когда SSH первый раз спросит про ключ сервера, проверьте, что это <span class="fp">SHA256:xMvzbhi5k5OnnNhmTObOjBzk6nGVrIRYRJGDP4aPNuI</span> (ED25519)</p>
+    <p class="dim">При первом подключении SSH покажет отпечаток ключа сервера. Он должен совпадать с этим: <span class="fp">SHA256:xMvzbhi5k5OnnNhmTObOjBzk6nGVrIRYRJGDP4aPNuI</span> (ED25519)</p>
   </section>
 
   <div class="split">
     <section class="box" aria-labelledby="first">
-      <h2 id="first">Первый звонок</h2>
-      <ol><li>Выберите терминал: <b>1</b> — UTF-8 (Терминал macOS, iTerm2, PuTTY), <b>2</b> — CP437 (SyncTERM и другие BBS-клиенты), <b>3</b> — простой ASCII.</li><li>На приглашении Handle наберите <b>NEW</b>, затем придумайте ник и пароль не короче 8 символов.</li><li>Пока сисоп не одобрит аккаунт, можно читать форумы и новости и писать сисопу. После одобрения открывается всё остальное.</li><li>Окно терминала нужно шириной от 80 колонок. Длинный вывод останавливается на <code>-- more --</code>.</li></ol>
+      <h2 id="first">Первый вход</h2>
+      <ol><li>Выберите терминал: <b>1</b> — UTF-8 (Терминал macOS, iTerm2, PuTTY), <b>2</b> — CP437 (SyncTERM и другие BBS-клиенты), <b>3</b> — обычный ASCII без цвета.</li><li>На приглашении Handle введите <b>NEW</b>, придумайте ник и пароль не короче 8 символов.</li><li>Пока сисоп не подтвердит регистрацию, можно читать конференции и новости и писать сисопу. После подтверждения открывается всё остальное.</li><li>Окно терминала должно быть шириной не меньше 80 символов. Длинный текст выводится постранично, с паузой на <code>-- more --</code>.</li></ol>
     </section>
     <section class="box" aria-labelledby="inside">
-      <h2 id="inside">Что внутри</h2>
-      <dl class="inside"><dt>Почта</dt><dd>Личные письма с цепочками, цитированием и поиском. Одно письмо можно отправить сразу нескольким.</dd><dt>Форумы</dt><dd>Открытые форумы и поиск всего нового с прошлого звонка.</dd><dt>Чат</dt><dd>Комнаты живого чата и однострочные сообщения тем, кто сейчас онлайн.</dd><dt>Двери</dt><dd>Boar Hunt, небольшая дверная игра.</dd><dt>Стена</dt><dd>Однострочники, которые видны при входе, и новости от сисопа.</dd><dt>Email</dt><dd>По желанию уведомление или копия новых писем, только на адрес, который вы подтвердили.</dd></dl>
+      <h2 id="inside">Что здесь есть</h2>
+      <dl class="inside"><dt>Почта</dt><dd>Личная переписка с цепочками писем, цитированием и поиском. Одно письмо можно отправить сразу нескольким адресатам.</dd><dt>Конференции</dt><dd>Открытые обсуждения. Всё новое с прошлого визита можно прочитать разом.</dd><dt>Чат</dt><dd>Комнаты для живого общения и короткие сообщения тем, кто сейчас на линии.</dd><dt>Игры</dt><dd>Boar Hunt — небольшая door-игра.</dd><dt>Стена</dt><dd>Короткие сообщения, которые все видят при входе, и новости от сисопа.</dd><dt>Email</dt><dd>По желанию — уведомление или копия новых писем, только на подтверждённый адрес.</dd></dl>
     </section>
   </div>
 
   <section class="box" aria-labelledby="fido">
     <h2 id="fido">FidoNet</h2>
-    <p>Boar подала заявку в FidoNet, сеть, через которую BBS обмениваются почтой с 1980-х. Когда узел внесут в нодлист, из BBS можно будет писать нетмейл и читать эхи.</p>
+    <p>Boar подала заявку на вступление в FidoNet — сеть, через которую BBS обмениваются почтой с 1980-х годов. Когда узел появится в нодлисте, с BBS можно будет писать нетмейл и читать эхоконференции.</p>
   </section>
 
   <section class="box" aria-labelledby="rules">
     <h2 id="rules">Правила</h2>
-    <p>Ведите себя по-человечески с другими. Без спама, рекламы и попыток сломать систему. Сисоп может заблокировать аккаунт, если правила не соблюдаются.</p>
-    <p>BBS хранит ваш ник, хеш пароля, ваши сообщения и журнал входов. Эта страница не ставит cookies и ничего не загружает с других сайтов.</p>
+    <p>Уважайте других участников. Никакого спама, рекламы и попыток взломать систему. Сисоп может заблокировать учётную запись нарушителя.</p>
+    <p>BBS хранит ваш ник, хеш пароля, ваши сообщения и журнал входов. Эта страница не использует cookies и ничего не загружает со сторонних сайтов.</p>
   </section>
 </main>
 
 <footer>
-  <p>Boar BBS — свободная программа. Вопросы? Позвоните в BBS и напишите сисопу.</p>
+  <p>Boar BBS — свободное программное обеспечение. Есть вопросы? Зайдите на BBS и напишите сисопу.</p>
   <p>© 2026 Mikhail Matveev · <a href="https://github.com/rh1tech/boar">github.com/rh1tech/boar</a> · GPL-3.0</p>
 </footer>
 </body>
