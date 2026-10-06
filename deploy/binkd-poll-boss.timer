@@ -1,0 +1,12 @@
+[Unit]
+Description=Poll Boar boss on rbx1 every 10 minutes
+
+[Timer]
+OnBootSec=2m
+OnUnitActiveSec=10m
+AccuracySec=1m
+Persistent=true
+Unit=binkd-poll-boss.service
+
+[Install]
+WantedBy=timers.target
