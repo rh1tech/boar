@@ -21,7 +21,7 @@ const (
 
 // mainMenuCounts gathers the numbers shown next to main menu entries.
 type mainMenuCounts struct {
-	unreadMail, newPosts, members, online, inChat int
+	unreadMail, newPosts, newEchoes, members, online, inChat int
 }
 
 func (s *session) loadMainMenuCounts() (mainMenuCounts, error) {
@@ -36,6 +36,9 @@ func (s *session) loadMainMenuCounts() (mainMenuCounts, error) {
 	}
 	for _, b := range boards {
 		c.newPosts += b.New
+	}
+	if c.newEchoes, err = s.srv.store.EchoUnreadCount(s.user.ID); err != nil {
+		return c, err
 	}
 	if c.members, err = s.srv.store.UserCount(); err != nil {
 		return c, err
@@ -71,6 +74,7 @@ func (s *session) mainMenu() error {
 		s.menuColumns("Messages", []menuItem{
 			{'M', "Mailbox", countNote(c.unreadMail, " new")},
 			{'B', "Message boards", countNote(c.newPosts, " new")},
+			{'E', "FidoNet echoes", countNote(c.newEchoes, " new")},
 			{'C', "Chat room", chatNote},
 			{'P', "Page someone", ""},
 			{'N', "News", ""},
@@ -82,7 +86,7 @@ func (s *session) mainMenu() error {
 			{'O', "Oneliner wall", ""},
 		})
 		s.approvalNotice()
-		keys := "MBCPNDWLUOSG"
+		keys := "MBECPNDWLUOSG"
 		bar := []menuItem{{'S', "Settings", ""}}
 		if s.user.Sysop {
 			keys += "!"
@@ -114,6 +118,8 @@ func (s *session) mainMenuAction(k rune) error {
 		return s.mailMenu()
 	case 'B':
 		return s.boardsMenu()
+	case 'E':
+		return s.echoesMenu()
 	case 'C':
 		if stop, err := s.awaitingApproval("Chat"); stop || err != nil {
 			return err
@@ -283,6 +289,7 @@ func (s *session) statusStrip(c mainMenuCounts) string {
 	parts := []string{
 		part(c.unreadMail, "new message", colAlert),
 		part(c.newPosts, "new post", colAlert),
+		part(c.newEchoes, "new echo", colAlert),
 		colInfo + fmt.Sprintf("%d online", c.online),
 		colInfo + plural(c.members, "member"),
 	}

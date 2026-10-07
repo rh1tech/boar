@@ -140,6 +140,48 @@ CREATE TABLE ssh_keys (
 	added_at    INTEGER NOT NULL
 );
 `,
+	`
+CREATE TABLE echo_areas (
+	id          INTEGER PRIMARY KEY,
+	tag         TEXT    NOT NULL UNIQUE,
+	description TEXT    NOT NULL DEFAULT '',
+	created_at  INTEGER NOT NULL
+);
+
+CREATE TABLE echo_messages (
+	id         INTEGER PRIMARY KEY,
+	area_id    INTEGER NOT NULL REFERENCES echo_areas(id) ON DELETE CASCADE,
+	msgid      TEXT    NOT NULL UNIQUE,
+	from_name  TEXT    NOT NULL,
+	from_addr  TEXT    NOT NULL,
+	to_name    TEXT    NOT NULL,
+	subject    TEXT    NOT NULL,
+	body       TEXT    NOT NULL,
+	posted_at  INTEGER NOT NULL
+);
+CREATE INDEX echo_messages_area ON echo_messages (area_id, id);
+
+CREATE TABLE echo_reads (
+	user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	area_id      INTEGER NOT NULL REFERENCES echo_areas(id) ON DELETE CASCADE,
+	last_read_id INTEGER NOT NULL,
+	PRIMARY KEY (user_id, area_id)
+);
+
+CREATE TABLE ftn_files (
+	name      TEXT    PRIMARY KEY,
+	tossed_at INTEGER NOT NULL
+);
+`,
+	// Bundle names repeat (00000000.MO0 comes round again), so a file is
+	// known by its content, not its name. ftn_files is no longer read.
+	`
+CREATE TABLE ftn_tossed (
+	sha256    TEXT    PRIMARY KEY,
+	name      TEXT    NOT NULL,
+	tossed_at INTEGER NOT NULL
+);
+`,
 }
 
 func (s *Store) migrate() error {

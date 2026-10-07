@@ -169,8 +169,19 @@ func TestTranscodeCP437(t *testing.T) {
 
 func TestRender256UsesTheVGAPalette(t *testing.T) {
 	r := NewRenderer(ANSI256)
-	if got := r.Render("|08x|22|15y|16z"); got != "\x1b[0;38;5;240;49mx\x1b[0;38;5;240;48;5;130m\x1b[0;38;5;231;48;5;130my\x1b[0;38;5;231;49mz" {
+	// Black background is the real VGA black (16), not SGR 49 (terminal default),
+	// so light-themed terminals still get a dark BBS screen.
+	if got := r.Render("|08x|22|15y|16z"); got != "\x1b[0;38;5;240;48;5;16mx\x1b[0;38;5;240;48;5;130m\x1b[0;38;5;231;48;5;130my\x1b[0;38;5;231;48;5;16mz" {
 		t.Fatalf("got %q", got)
+	}
+}
+
+func TestRender256ClearPaintsBlack(t *testing.T) {
+	r := NewRenderer(ANSI256)
+	got := r.Render("|CL|14Hi|RE")
+	want := "\x1b[0;38;5;248;48;5;16m\x1b[2J\x1b[H\x1b[0;38;5;227;48;5;16mHi\x1b[0;38;5;248;48;5;16m"
+	if got != want {
+		t.Fatalf("got %q, want %q", got, want)
 	}
 }
 

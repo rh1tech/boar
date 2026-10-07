@@ -398,7 +398,7 @@ func TestUTF8TerminalGetsColorAndBoxDrawing(t *testing.T) {
 	c.line("")
 	c.expect("\x1b[2J")
 	c.expect("█")
-	c.expect("\x1b[0;38;5;227;49m")
+	c.expect("\x1b[0;38;5;227;48;5;16m")
 	c.expect("Handle")
 }
 

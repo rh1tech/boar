@@ -22,7 +22,6 @@ const (
 	defaultFG   = 7
 	defaultBG   = 0
 	clearScreen = "\x1b[2J\x1b[H"
-	resetSGR    = "\x1b[0m"
 )
 
 // dosToANSI maps DOS color order (blue=1, red=4) to ANSI order (red=1, blue=4).
@@ -92,14 +91,19 @@ func (r *Renderer) Render(s string) string {
 func (r *Renderer) code(c string) (string, bool) {
 	switch c {
 	case "CL":
+		r.fg, r.bg = defaultFG, defaultBG
 		if r.color {
-			return clearScreen, true
+			// Set black before clearing so erased cells stay black on light
+			// terminal themes (macOS Terminal, iTerm2 in light mode).
+			return r.sgr() + clearScreen, true
 		}
 		return "\n", true
 	case "RE":
 		r.fg, r.bg = defaultFG, defaultBG
 		if r.color {
-			return resetSGR, true
+			// Restore BBS defaults (light gray on black), not the terminal's
+			// own theme — \x1b[0m would put a light terminal back on white.
+			return r.sgr(), true
 		}
 		return "", true
 	}
@@ -123,11 +127,10 @@ func (r *Renderer) code(c string) (string, bool) {
 
 func (r *Renderer) sgr() string {
 	if r.mode == ANSI256 {
-		bg := "49" // black background means the terminal's own background
-		if r.bg != 0 {
-			bg = fmt.Sprintf("48;5;%d", vga256[r.bg])
-		}
-		return fmt.Sprintf("\x1b[0;38;5;%d;%sm", vga256[r.fg], bg)
+		// Always send an explicit background. Mapping DOS black to SGR 49
+		// ("default") looked right on dark themes but made light gray text
+		// invisible on light ones.
+		return fmt.Sprintf("\x1b[0;38;5;%d;48;5;%dm", vga256[r.fg], vga256[r.bg])
 	}
 	bold := ""
 	if r.fg >= 8 {

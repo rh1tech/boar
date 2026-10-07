@@ -7,17 +7,17 @@
 //	    -subject "Node application" < letter.txt
 //	boar-ftn show /var/spool/ftn/in/*.pkt
 //	boar-ftn notify -to sysop@example.com FILE
+//	boar-ftn toss -data /var/lib/boar/boar.db
 //
 // netmail queues one message in binkd's outbound (crash by default, so binkd
 // calls straight away). show prints packets, for checking what arrived.
 // notify emails the sysop what arrived; binkd runs it for every received
-// packet or mail bundle (see deploy/binkd.cfg). It never moves or deletes the
-// file: the BBS imports it later.
+// packet or mail bundle (see deploy/binkd.cfg). toss imports echomail into
+// the BBS database so callers can read it. It never deletes unreadable
+// mail: those go to the bad/ folder.
 package main
 
 import (
-	"archive/zip"
-	"bytes"
 	"errors"
 	"flag"
 	"fmt"
@@ -31,6 +31,8 @@ import (
 	"time"
 
 	"boar/internal/ftn"
+	"boar/internal/ftntoss"
+	"boar/internal/store"
 )
 
 func main() {
@@ -45,6 +47,8 @@ func main() {
 		err = show(os.Args[2:])
 	case "notify":
 		err = notify(os.Args[2:])
+	case "toss":
+		err = toss(os.Args[2:])
 	default:
 		usage()
 	}
@@ -55,7 +59,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: boar-ftn netmail [flags] < body.txt\n       boar-ftn show FILE ...\n       boar-ftn notify -to ADDRESS FILE")
+	fmt.Fprintln(os.Stderr, "usage: boar-ftn netmail [flags] < body.txt\n       boar-ftn show FILE ...\n       boar-ftn notify -to ADDRESS FILE\n       boar-ftn toss [flags]")
 	os.Exit(2)
 }
 
@@ -133,14 +137,14 @@ func show(files []string) error {
 
 // describe renders a packet, or every packet inside a mail bundle.
 func describe(name string) (string, error) {
-	packets, err := readPackets(name)
+	packets, err := ftn.ReadPackets(name)
 	if err != nil {
 		return "", fmt.Errorf("%s: %w", name, err)
 	}
 	var b strings.Builder
 	for _, np := range packets {
-		p := np.pkt
-		fmt.Fprintf(&b, "== %s: %s -> %s, %s, %d message(s)\n", np.name, p.From, p.To, p.Created.Format(time.RFC3339), len(p.Messages))
+		p := np.Pkt
+		fmt.Fprintf(&b, "== %s: %s -> %s, %s, %d message(s)\n", np.Name, p.From, p.To, p.Created.Format(time.RFC3339), len(p.Messages))
 		for _, pm := range p.Messages {
 			m := ftn.ParseMessage(pm, p.From, p.To, ftn.CP437)
 			where := "netmail " + m.Orig.String() + " -> " + m.Dest.String()
@@ -153,48 +157,27 @@ func describe(name string) (string, error) {
 	return b.String(), nil
 }
 
-type namedPacket struct {
-	name string
-	pkt  *ftn.Packet
-}
+func toss(args []string) error {
+	fs := flag.NewFlagSet("toss", flag.ExitOnError)
+	data := fs.String("data", "/var/lib/boar/boar.db", "BBS SQLite database")
+	inbound := fs.String("inbound", "/var/spool/ftn/in", "secure inbound directory")
+	insecure := fs.String("inbound-nonsecure", "/var/spool/ftn/in.insecure", "non-secure inbound directory")
+	fs.Parse(args)
 
-// readPackets opens a .pkt, or a ZIP mail bundle (.su0, .mo1 ...) of them.
-func readPackets(name string) ([]namedPacket, error) {
-	data, err := os.ReadFile(name)
+	st, err := store.Open(store.Config{Path: *data})
 	if err != nil {
-		return nil, err
+		return err
 	}
-	if !bytes.HasPrefix(data, []byte("PK\x03\x04")) {
-		p, err := ftn.ReadPacket(bytes.NewReader(data))
-		if err != nil {
-			return nil, err
-		}
-		return []namedPacket{{filepath.Base(name), p}}, nil
-	}
-	zr, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
-	if err != nil {
-		return nil, err
-	}
-	var out []namedPacket
-	for _, f := range zr.File {
-		if !strings.EqualFold(filepath.Ext(f.Name), ".pkt") || f.UncompressedSize64 > maxPacketBytes {
-			continue
-		}
-		rc, err := f.Open()
-		if err != nil {
-			return out, err
-		}
-		p, err := ftn.ReadPacket(io.LimitReader(rc, maxPacketBytes))
-		rc.Close()
-		if err != nil {
-			return out, fmt.Errorf("%s: %w", f.Name, err)
-		}
-		out = append(out, namedPacket{filepath.Base(name) + ":" + f.Name, p})
-	}
-	return out, nil
-}
+	defer st.Close()
 
-const maxPacketBytes = 16 << 20
+	stats, err := ftntoss.TossAll(st, *inbound, *insecure)
+	if err != nil {
+		return err
+	}
+	fmt.Printf("tossed %d file(s): %d stored, %d duplicate, %d skipped, %d failed\n",
+		stats.Files, stats.Stored, stats.Duplicate, stats.Skipped, stats.Failed)
+	return nil
+}
 
 // notify emails the sysop what arrived. It is best effort by design: binkd
 // runs it after a file is safely in the inbound, so a failure here loses

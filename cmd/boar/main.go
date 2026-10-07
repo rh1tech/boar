@@ -49,6 +49,9 @@ type options struct {
 	publicAddr string
 
 	webAddr string
+
+	ftnInbound  string
+	ftnInsecure string
 }
 
 // smtpPasswordEnv holds the SMTP password, kept out of flags so it can't
@@ -84,6 +87,8 @@ func parseFlags() (options, error) {
 	flag.StringVar(&o.smtpFrom, "smtp-from", "", "address emails are sent from")
 	flag.StringVar(&o.publicAddr, "public-address", "", `how emails tell people to call, e.g. "bbs.example.com:2222"`)
 	flag.StringVar(&o.webAddr, "web", "", `sysop web interface address, e.g. "127.0.0.1:8023" ("" disables it; put a TLS proxy in front)`)
+	flag.StringVar(&o.ftnInbound, "ftn-inbound", "", `FidoNet secure inbound to toss echomail from ("" disables the tosser)`)
+	flag.StringVar(&o.ftnInsecure, "ftn-inbound-nonsecure", "", "FidoNet non-secure inbound (used with -ftn-inbound)")
 	flag.Parse()
 
 	switch {
@@ -170,6 +175,12 @@ func run() error {
 			return err
 		}
 		servers = append(servers, serve)
+	}
+	if o.ftnInbound != "" || o.ftnInsecure != "" {
+		in, insecure := o.ftnInbound, o.ftnInsecure
+		servers = append(servers, func() error {
+			return srv.RunTosser(ctx, in, insecure)
+		})
 	}
 	log.Info("boar is up", "data", o.dataPath, "nodes", o.maxNodes)
 	err = serveAll(servers, stop)
