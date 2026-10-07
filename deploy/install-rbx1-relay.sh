@@ -24,6 +24,11 @@ install -m 640 -o root -g ftn "$HERE/binkd.cfg" /etc/binkd/binkd.cfg
 install -d -m 755 /usr/local/lib/boar
 install -m 755 "$HERE/ftn-forward-spb1.sh" /usr/local/lib/boar/ftn-forward-spb1.sh
 
+# Petros holds mail for nodes that do not call: collect it every hour.
+install -m 644 "$HERE/binkd-poll-petros.service" "$HERE/binkd-poll-petros.timer" /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable --now binkd-poll-petros.timer >/dev/null 2>&1
+
 systemctl disable --now boar.service >/dev/null 2>&1 || true
 systemctl restart binkd.service
 sleep 2

@@ -70,6 +70,9 @@ own copy, and a message is gone for good once both have.
 
 ### Everything else
 
+- FidoNet: echomail (**E**), netmail (**T**) and file echoes (**F**) — see
+  [FidoNet](#fidonet). Files download by ZMODEM over Telnet or SSH, or from a
+  web link that works for a day.
 - Message boards: public forums with unread counts per caller, a "read all
   new" scan, threaded replies, and a key to mail a post's author privately.
   Sysops can make a board read-only for everyone else, like the
@@ -273,7 +276,7 @@ sends it over HTTPS. `deploy/nginx-boar-web.conf` is the vhost used for
 boar.rh1.tech. The BBS takes the caller's address from `X-Real-IP`, but only
 when the request comes from loopback.
 
-## FidoNet (in progress)
+## FidoNet
 
 Boar's main node is **2:5030/1651** (Net 5030, Saint Petersburg) on spb1,
 where the BBS runs. Its AKA **2:410/51** (Petros Argyrakis, Net 410 /
@@ -317,8 +320,32 @@ Russian hubs  ↔  spb1 2:5030/1651  ↔  rbx1 2:5030/1651.1 + 2:410/51  ↔  Pe
 - CHRS character sets: CP437, CP866, Latin-1 and UTF-8;
 - binkd's outbound layout (FTS-5005).
 
-Echomail reading is live: the BBS tosses the inbound every half minute (see
-`-ftn-inbound`) and callers open **E** from the main menu.
+The BBS tosses the inbound every half minute (`-ftn-inbound`):
+
+- **Echomail** from password-protected sessions goes into the echo areas
+  (**E**). The non-secure inbound is never a source of echomail: anybody can
+  call and leave a packet there.
+- **Netmail** for one of the node's addresses (`-ftn-address`) goes into the
+  netmail box (**T**), from either inbound. A sysop sees all of it; anyone
+  else sees netmail addressed to their handle. Sysops reply and write new
+  netmail there: it leaves from the address in the destination's net if the
+  node has one (2:410/51 for Net 410), else the main one, through
+  `-ftn-direct` links or `-ftn-via` (rbx1's point 2:5030/1651.1), crash.
+  rbx1 passes it on with `boar-ftn route` (`ftn-forward-spb1.sh`), adding a
+  Via line.
+- **File echoes** (TIC, FSC-0087): a file whose TIC has arrived is checked
+  against the TIC's size and CRC-32 and put in `-files/<area>/`; `Replaces`
+  removes the old copy. A TIC waits a day for its file, which travels
+  separately; whatever does not check out goes to `bad/` with its TIC. Callers
+  browse **F**. A download is ZMODEM (`github.com/xx25/go-zmodem`, all control
+  characters escaped, Telnet switched to binary for it), or a signed link to
+  `-files-url` served by `-files-web` (`deploy/nginx-boar-bbs.conf`), valid
+  for `-files-link-ttl`. Deleting `files.key` next to the database revokes
+  every link. New callers need approval before they download.
+
+File echoes need the uplink to send them. On 2026-10-07 D'Bridge's FileFix on
+2:410/9 answered "nothing available for your security level": Petros has to
+link file areas to 2:410/51 before any arrive.
 
 ```sh
 boar-ftn netmail -from 2:410/51 -to 2:410/9 -to-name "Petros Argyrakis" \
@@ -329,13 +356,15 @@ printf '%s\n' BINKD LINUX | boar-ftn netmail -from 2:410/51 -to 2:410/9 \
 boar-ftn show /var/spool/ftn/in/*               # read what arrived
 boar-ftn notify -to you@example.com FILE        # email what arrived
 boar-ftn toss -data /var/lib/boar/boar.db       # import echoes into the BBS
+boar-ftn netmail -via 2:5030/1651.1 ...          # from spb1, through the relay
+boar-ftn route -own 2:410/51 -via 2:410/9 FILE   # on rbx1: pass netmail on
 ```
 
 binkd runs `notify -for <own addresses>` for every received packet or bundle
 (`*F` in `deploy/binkd-spb1.cfg`, and `ftn-forward-spb1.sh` on rbx1): each
 node emails about its own netmail only, so a bundle relayed between them is
-announced once, and echomail is not announced at all. The BBS imports echomail into SQLite and moves the file
-to `/var/spool/ftn/tossed` (or `bad`). Netmail import is still later.
+announced once, and echomail is not announced at all. Tossed files move to
+`/var/spool/ftn/tossed` (or `bad`).
 
 Run outbound tools as `ftn` or `boar`. The BBS needs the `ftn` group and
 write access to the spool (see `deploy/boar.service`).
@@ -352,7 +381,8 @@ internal/store/    SQLite: users, blocks, mail, boards, news, oneliners, events,
 internal/mailer/   SMTP sending and the background mail queue
 internal/doors/    door config, drop files, running door programs
 internal/ftn/      FidoNet addresses, packets, charsets, outbound BSO layout
-internal/ftntoss/  inbound tosser: packets → echo_messages in SQLite
+internal/ftntoss/  inbound tosser: echomail, netmail, file echoes (TIC)
+internal/filelink/ signed download links for files, and their web server
 internal/bbs/      server, SSH transport, nodes, sessions, menus, mail,
                    boards, echoes, chat, sysop tools, screen layout
 internal/bbs/art/  built-in screens (*.ans), embedded into the binary

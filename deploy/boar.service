@@ -22,6 +22,14 @@ ExecStart=/opt/boar/bin/boar \
   -web 127.0.0.1:8023 \
   -ftn-inbound /var/spool/ftn/in \
   -ftn-inbound-nonsecure /var/spool/ftn/in.insecure \
+  -ftn-address 2:5030/1651,2:410/51 \
+  -ftn-outbound /var/spool/ftn/out \
+  -ftn-direct 2:5030/731,2:5030/0,2:5030/1651.1 \
+  -ftn-via 2:5030/1651.1 \
+  -ftn-sysop-name "Mikhail Matveev" \
+  -files /var/lib/boar/files \
+  -files-web 127.0.0.1:8024 \
+  -files-url https://boar-bbs.rh1.tech/f/ \
   $BOAR_ARGS
 Restart=on-failure
 RestartSec=5

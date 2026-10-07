@@ -1,0 +1,12 @@
+[Unit]
+Description=Poll Petros (2:410/9) every hour
+
+[Timer]
+OnBootSec=5m
+OnUnitActiveSec=1h
+RandomizedDelaySec=5m
+Persistent=true
+Unit=binkd-poll-petros.service
+
+[Install]
+WantedBy=timers.target

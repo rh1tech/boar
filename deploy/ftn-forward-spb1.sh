@@ -12,7 +12,19 @@ set -eu
 src=${1:?usage: ftn-forward-spb1.sh FILE}
 # Best effort: a failed notice must never stop the mail being relayed.
 /opt/boar/bin/boar-ftn notify -to xtreme@outlook.com -for 2:410/51,2:5030/1651.1 "$src" || true
-case "$src" in /var/spool/ftn/in.spb1/*) exit 0 ;; esac
+
+# What spb1 sends goes out into FidoNet from here: its netmail for anyone but
+# this system is queued for the next hop (Petros for everything he is not
+# linked to directly, which is all of it). Nothing is sent back to spb1.
+case "$src" in
+/var/spool/ftn/in.spb1/*)
+	/opt/boar/bin/boar-ftn route -own 2:410/51,2:5030/1651.1 \
+		-direct 2:410/9,2:410/0,2:41/0,2:5030/731,2:5030/0,2:5030/1651 -via 2:410/9 \
+		"$src" >>/var/log/binkd/route.log 2>&1 ||
+		echo "$(date -u +%FT%TZ) route failed for $src; left in place" >>/var/log/binkd/route.log
+	exit 0
+	;;
+esac
 
 obox=/var/spool/ftn/obox.spb1
 # An empty direct-flavour flow file is a poll: binkd calls 2:5030/1651 on its

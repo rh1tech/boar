@@ -72,6 +72,27 @@ postconf -e "myhostname = spb1.re-hash.org" \
 systemctl enable postfix >/dev/null 2>&1
 systemctl restart postfix
 
+echo "[ftn] file echoes and their download links..."
+# Where Boar keeps file-echo files (-files), and the vhost for download links
+# (-files-web on 127.0.0.1:8024) at boar-bbs.rh1.tech, the callers' name.
+if getent passwd boar >/dev/null; then
+  install -d -m 750 -o boar -g boar /var/lib/boar/files
+fi
+if [ ! -e /etc/letsencrypt/live/boar-bbs.rh1.tech/fullchain.pem ]; then
+  certbot certonly --nginx --non-interactive --agree-tos --keep-until-expiring \
+    -m xtreme@outlook.com -d boar-bbs.rh1.tech >/dev/null ||
+    echo "[ftn] no certificate for boar-bbs.rh1.tech yet; download links will not work" >&2
+fi
+if [ -e /etc/letsencrypt/live/boar-bbs.rh1.tech/fullchain.pem ]; then
+  install -m 644 "$HERE/nginx-boar-bbs.conf" /etc/nginx/vhosts/boar-bbs.rh1.tech.conf
+  if nginx -t 2>/dev/null; then
+    systemctl reload nginx
+  else
+    rm -f /etc/nginx/vhosts/boar-bbs.rh1.tech.conf
+    echo "[ftn] nginx rejected the boar-bbs.rh1.tech vhost; removed it" >&2
+  fi
+fi
+
 systemctl daemon-reload
 systemctl enable binkd.service binkd-poll-rbx1.timer >/dev/null 2>&1
 systemctl restart binkd.service

@@ -1,0 +1,12 @@
+[Unit]
+Description=Poll Petros (2:410/9) for FidoNet mail held for 2:410/51
+After=network-online.target binkd.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ftn
+Group=ftn
+# -p: one-shot client; -P: force a poll even with an empty outbound.
+ExecStart=/usr/sbin/binkd -p -P2:410/9 /etc/binkd/binkd.cfg
+Nice=10
