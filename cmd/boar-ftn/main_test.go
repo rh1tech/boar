@@ -74,3 +74,54 @@ func TestParseAddrList(t *testing.T) {
 		t.Fatal("an empty list must be an error")
 	}
 }
+
+// rbx1 routing what spb1 sends: its own netmail stays, the rest is queued for
+// the next hop with a Via line, and echomail is not touched.
+func TestRoutePassesOnOthersNetmail(t *testing.T) {
+	dir := t.TempDir()
+	spb1, rbx1, petros := ftn.MustParseAddr("2:5030/1651"), ftn.MustParseAddr("2:410/51"), ftn.MustParseAddr("2:410/9")
+	now := time.Date(2026, 10, 7, 9, 0, 0, 0, time.UTC)
+	nm := func(to ftn.Addr, subject string) ftn.PackedMessage {
+		m := ftn.Message{From: "Sysop", To: "Areafix", Subject: subject, Orig: rbx1, Dest: to, Date: now,
+			MsgID: "2:410/51 " + subject, Charset: ftn.CP437, Body: "%LIST\n", Attr: ftn.AttrCrash}
+		return m.Pack()
+	}
+	pkt := ftn.Packet{From: spb1, To: ftn.MustParseAddr("2:5030/1651.1"), Created: now,
+		Messages: []ftn.PackedMessage{nm(petros, "to-petros"), nm(rbx1, "to-us"), nm(ftn.MustParseAddr("1:153/757"), "far")}}
+	in := filepath.Join(dir, "in.spb1")
+	if err := os.MkdirAll(in, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(in, "abcd0001.pkt")
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if _, err := pkt.WriteTo(f); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	out := filepath.Join(dir, "out")
+	err = route([]string{"-outbound", out, "-done", filepath.Join(dir, "routed"),
+		"-own", "2:410/51,2:5030/1651.1", "-direct", "2:410/9,2:5030/1651", "-via", "2:410/9", path})
+	if err != nil {
+		t.Fatal(err)
+	}
+	// Both outgoing messages go to Petros (one direct, one via him), crash.
+	queued := filepath.Join(out, "019a0009.cut")
+	text, n, err := describe(queued, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 2 || !strings.Contains(text, "to-petros") || !strings.Contains(text, "far") || strings.Contains(text, "to-us") {
+		t.Fatalf("queued for Petros (%d):\n%s", n, text)
+	}
+	raw, _ := os.ReadFile(queued)
+	if !strings.Contains(string(raw), "\x01Via 2:410/51 @") {
+		t.Error("routed netmail carries no Via line")
+	}
+	if _, err := os.Stat(filepath.Join(dir, "routed", "abcd0001.pkt")); err != nil {
+		t.Errorf("FILE was not moved to -done: %v", err)
+	}
+}

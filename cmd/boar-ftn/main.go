@@ -8,6 +8,7 @@
 //	boar-ftn show /var/spool/ftn/in/*.pkt
 //	boar-ftn notify -to sysop@example.com [-for 2:5030/1651,...] FILE
 //	boar-ftn toss -data /var/lib/boar/boar.db
+//	boar-ftn route -own 2:410/51 -direct 2:410/9 -via 2:410/9 FILE
 //
 // netmail queues one message in binkd's outbound (crash by default, so binkd
 // calls straight away). show prints packets, for checking what arrived.
@@ -17,7 +18,8 @@
 // each node announces its own netmail, and a bundle relayed between nodes is
 // not announced twice. toss imports echomail into
 // the BBS database so callers can read it. It never deletes unreadable
-// mail: those go to the bad/ folder.
+// mail: those go to the bad/ folder. route passes on netmail that arrived
+// for somebody else: on rbx1, what spb1 sends out into FidoNet.
 package main
 
 import (
@@ -52,6 +54,8 @@ func main() {
 		err = notify(os.Args[2:])
 	case "toss":
 		err = toss(os.Args[2:])
+	case "route":
+		err = route(os.Args[2:])
 	default:
 		usage()
 	}
@@ -62,7 +66,7 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprintln(os.Stderr, "usage: boar-ftn netmail [flags] < body.txt\n       boar-ftn show FILE ...\n       boar-ftn notify -to ADDRESS FILE\n       boar-ftn toss [flags]")
+	fmt.Fprintln(os.Stderr, "usage: boar-ftn netmail [flags] < body.txt\n       boar-ftn show FILE ...\n       boar-ftn notify -to ADDRESS FILE\n       boar-ftn toss [flags]\n       boar-ftn route [flags] FILE")
 	os.Exit(2)
 }
 
@@ -78,6 +82,7 @@ func netmail(args []string) error {
 	flavour := fs.String("flavour", "crash", "crash, normal, hold or direct")
 	charset := fs.String("charset", "CP437", "CP437, CP866, LATIN-1 or UTF-8")
 	password := fs.String("password", "", "packet password agreed with the destination, if any")
+	via := fs.String("via", "", "queue for this node instead, to route it on (e.g. spb1's relay, 2:5030/1651.1)")
 	fs.Parse(args)
 
 	fromAddr, err := ftn.ParseAddr(*from)
@@ -115,15 +120,21 @@ func netmail(args []string) error {
 	if fl == ftn.Crash {
 		m.Attr |= ftn.AttrCrash
 	}
-	header := ftn.Packet{From: fromAddr.Boss(), To: toAddr.Boss(), Password: *password, Created: now}
+	hop := toAddr.Boss()
+	if *via != "" {
+		if hop, err = ftn.ParseAddr(*via); err != nil {
+			return fmt.Errorf("-via: %w", err)
+		}
+	}
+	header := ftn.Packet{From: fromAddr.Boss(), To: hop, Password: *password, Created: now}
 	if fromAddr.IsPoint() {
 		header.From = fromAddr
 	}
 	out := ftn.Outbound{Root: *outbound, DefaultZone: *zone}
-	if err := out.Queue(toAddr.Boss(), fl, header, []ftn.PackedMessage{m.Pack()}); err != nil {
+	if err := out.Queue(hop, fl, header, []ftn.PackedMessage{m.Pack()}); err != nil {
 		return err
 	}
-	fmt.Printf("queued for %s in %s\n", toAddr, out.PacketPath(toAddr.Boss(), fl))
+	fmt.Printf("queued for %s in %s\n", toAddr, out.PacketPath(hop, fl))
 	return nil
 }
 
@@ -250,6 +261,9 @@ func notify(args []string) error {
 		}
 	}
 	name := fs.Arg(0)
+	if only != nil && !ftn.IsMailBundle(name) {
+		return nil // a TIC or an attached file: not netmail for anyone
+	}
 	text, shown, err := describe(name, only)
 	if err == nil && only != nil && shown == 0 {
 		return nil // nothing here for this node
@@ -326,4 +340,89 @@ func firstSubject(text string) string {
 		}
 	}
 	return ""
+}
+
+// route passes on the netmail in FILE that is not for this system: each
+// message goes, unchanged but for a Via line, into the outbound for its next
+// hop. Netmail for one of -own stays where it is (notify announces it), and
+// echomail is left alone. FILE moves to -done once everything in it is
+// queued; on any error it stays put, to be tried again.
+func route(args []string) error {
+	fs := flag.NewFlagSet("route", flag.ExitOnError)
+	outbound := fs.String("outbound", "/var/spool/ftn/out", "BSO outbound directory for the default zone")
+	zone := fs.Int("zone", 2, "default zone (the one that lives in -outbound itself)")
+	ownList := fs.String("own", "", "this system's addresses, the first one its main address")
+	directList := fs.String("direct", "", "nodes this system calls itself")
+	viaAddr := fs.String("via", "", "where everything else goes")
+	done := fs.String("done", "/var/spool/ftn/routed", "where FILE goes once routed")
+	fs.Parse(args)
+	if fs.NArg() != 1 {
+		return errors.New("usage: boar-ftn route -own ADDRS [-direct ADDRS] [-via ADDR] FILE")
+	}
+	own, err := parseAddrList(*ownList)
+	if err != nil {
+		return fmt.Errorf("-own: %w", err)
+	}
+	var routes ftn.Routes
+	if *directList != "" {
+		if routes.Direct, err = parseAddrList(*directList); err != nil {
+			return fmt.Errorf("-direct: %w", err)
+		}
+	}
+	if *viaAddr != "" {
+		if routes.Via, err = ftn.ParseAddr(*viaAddr); err != nil {
+			return fmt.Errorf("-via: %w", err)
+		}
+	}
+	name := fs.Arg(0)
+	if !ftn.IsMailBundle(name) {
+		return nil
+	}
+	packets, err := ftn.ReadPackets(name)
+	if err != nil {
+		return err
+	}
+	out := ftn.Outbound{Root: *outbound, DefaultZone: *zone}
+	now := time.Now()
+	routed := 0
+	for _, np := range packets {
+		for _, pm := range np.Pkt.Messages {
+			if !pm.IsNetmail() {
+				continue
+			}
+			m := ftn.ParseMessage(pm, np.Pkt.From, np.Pkt.To, ftn.CP437)
+			if ftn.Contains(own, m.Dest) {
+				continue
+			}
+			hop, ok := routes.Hop(m.Dest)
+			if !ok {
+				return fmt.Errorf("%s: no route to %s", np.Name, m.Dest)
+			}
+			fl := ftn.Normal
+			if pm.Attr&ftn.AttrCrash != 0 {
+				fl = ftn.Crash
+			}
+			ftn.AddVia(&pm, own[0], now, "boar-ftn")
+			header := ftn.Packet{From: own[0], To: hop, Created: now}
+			if err := out.Queue(hop, fl, header, []ftn.PackedMessage{pm}); err != nil {
+				return fmt.Errorf("queue for %s: %w", hop, err)
+			}
+			fmt.Printf("routed netmail %s -> %s via %s\n", m.Orig, m.Dest, hop)
+			routed++
+		}
+	}
+	if err := os.MkdirAll(*done, 0o2770); err != nil {
+		return err
+	}
+	dest := filepath.Join(*done, filepath.Base(name))
+	if _, err := os.Lstat(dest); err == nil {
+		dest = fmt.Sprintf("%s.%d", dest, now.UnixNano()) // mailers reuse names
+	}
+	if err := os.Rename(name, dest); err != nil {
+		return err
+	}
+	if routed == 0 {
+		fmt.Println("nothing to route")
+	}
+	return nil
 }

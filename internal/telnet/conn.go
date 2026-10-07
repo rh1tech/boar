@@ -10,6 +10,7 @@ import (
 	"bytes"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 )
 
@@ -23,9 +24,10 @@ const (
 	DONT byte = 254
 	IAC  byte = 255
 
-	OptEcho byte = 1
-	OptSGA  byte = 3
-	OptNAWS byte = 31
+	OptBinary byte = 0 // TRANSMIT-BINARY (RFC 856), for file transfers
+	OptEcho   byte = 1
+	OptSGA    byte = 3
+	OptNAWS   byte = 31
 )
 
 const (
@@ -46,6 +48,7 @@ type Conn struct {
 	r       *bufio.Reader
 	lastCR  bool
 	refused map[[2]byte]bool
+	binary  atomic.Bool // during a file transfer: bytes pass as they are
 
 	wmu sync.Mutex
 
@@ -95,6 +98,11 @@ func (c *Conn) ReadByte() (byte, error) {
 			c.lastCR = false
 			return data, nil
 		}
+		if c.binary.Load() {
+			// A file transfer's CR is data, and so is whatever follows it.
+			c.lastCR = false
+			return b, nil
+		}
 		if c.lastCR {
 			c.lastCR = false
 			if b == '\n' || b == 0 {
@@ -135,12 +143,12 @@ func (c *Conn) negotiate(cmd, opt byte) error {
 	var reply byte
 	switch cmd {
 	case DO:
-		if opt == OptEcho || opt == OptSGA {
+		if opt == OptEcho || opt == OptSGA || (opt == OptBinary && c.binary.Load()) {
 			return nil
 		}
 		reply = WONT
 	case WILL:
-		if opt == OptNAWS || opt == OptSGA {
+		if opt == OptNAWS || opt == OptSGA || (opt == OptBinary && c.binary.Load()) {
 			return nil
 		}
 		reply = DONT
@@ -201,6 +209,19 @@ func (c *Conn) Size() (width, height int) {
 	c.smu.Lock()
 	defer c.smu.Unlock()
 	return c.width, c.height
+}
+
+// SetBinary switches TRANSMIT-BINARY on for both directions (or off again)
+// and stops reducing CR LF and CR NUL to CR, so a file transfer's bytes
+// arrive exactly as sent. 0xFF is still doubled, as Telnet requires.
+func (c *Conn) SetBinary(on bool) error {
+	c.binary.Store(on)
+	will, do := WILL, DO
+	if !on {
+		will, do = WONT, DONT
+	}
+	_, err := c.writeRaw([]byte{IAC, will, OptBinary, IAC, do, OptBinary})
+	return err
 }
 
 // Write sends data, escaping 0xFF bytes as IAC IAC.

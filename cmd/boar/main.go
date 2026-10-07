@@ -13,12 +13,15 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"path/filepath"
 	"sync"
 	"syscall"
 	"time"
 
 	"boar/internal/bbs"
 	"boar/internal/doors"
+	"boar/internal/filelink"
+	"boar/internal/ftn"
 	"boar/internal/mailer"
 	"boar/internal/store"
 	"boar/internal/web"
@@ -52,6 +55,18 @@ type options struct {
 
 	ftnInbound  string
 	ftnInsecure string
+	ftnAddress  string
+	ftnOutbound string
+	ftnZone     int
+	ftnDirect   string
+	ftnVia      string
+	ftnSysop    string
+
+	files        string
+	filesWeb     string
+	filesURL     string
+	filesKey     string
+	filesLinkTTL time.Duration
 }
 
 // smtpPasswordEnv holds the SMTP password, kept out of flags so it can't
@@ -89,6 +104,17 @@ func parseFlags() (options, error) {
 	flag.StringVar(&o.webAddr, "web", "", `sysop web interface address, e.g. "127.0.0.1:8023" ("" disables it; put a TLS proxy in front)`)
 	flag.StringVar(&o.ftnInbound, "ftn-inbound", "", `FidoNet secure inbound to toss echomail from ("" disables the tosser)`)
 	flag.StringVar(&o.ftnInsecure, "ftn-inbound-nonsecure", "", "FidoNet non-secure inbound (used with -ftn-inbound)")
+	flag.StringVar(&o.ftnAddress, "ftn-address", "", `this node's FidoNet addresses, main one first, e.g. "2:5030/1651,2:410/51" (netmail for them is the BBS's)`)
+	flag.StringVar(&o.ftnOutbound, "ftn-outbound", "", `binkd's outbound for the default zone, e.g. "/var/spool/ftn/out" ("" = netmail cannot be sent)`)
+	flag.IntVar(&o.ftnZone, "ftn-zone", 2, "the default zone, the one -ftn-outbound itself holds")
+	flag.StringVar(&o.ftnDirect, "ftn-direct", "", "FidoNet nodes binkd calls itself, comma separated")
+	flag.StringVar(&o.ftnVia, "ftn-via", "", "where netmail for every other node goes")
+	flag.StringVar(&o.ftnSysop, "ftn-sysop-name", "", "the real name sysops sign netmail with")
+	flag.StringVar(&o.files, "files", "", `where file-echo files are kept, e.g. "/var/lib/boar/files" ("" turns file areas off)`)
+	flag.StringVar(&o.filesWeb, "files-web", "", `download server address for file links, e.g. "127.0.0.1:8024" (put a TLS proxy in front)`)
+	flag.StringVar(&o.filesURL, "files-url", "", `public prefix of a download link, e.g. "https://bbs.example.com/f/"`)
+	flag.StringVar(&o.filesKey, "files-key", "", "signing key for download links (created if missing; default next to -data)")
+	flag.DurationVar(&o.filesLinkTTL, "files-link-ttl", 24*time.Hour, "how long a download link works")
 	flag.Parse()
 
 	switch {
@@ -100,6 +126,11 @@ func parseFlags() (options, error) {
 		return o, errors.New("enable at least one of -telnet and -ssh")
 	case o.smtpHost != "" && o.smtpFrom == "":
 		return o, errors.New("-smtp-from is required with -smtp-host")
+	case (o.filesWeb != "" || o.filesURL != "") && (o.files == "" || o.filesWeb == "" || o.filesURL == ""):
+		return o, errors.New("-files-web and -files-url go together, and need -files")
+	}
+	if o.filesKey == "" {
+		o.filesKey = filepath.Join(filepath.Dir(o.dataPath), "files.key")
 	}
 	return o, nil
 }
@@ -135,6 +166,17 @@ func run() error {
 	}
 	cfg := bbs.Config{Name: o.name, MaxNodes: o.maxNodes, MaxSignupsPerDay: o.maxSignups, IdleTimeout: o.idle, ArtDir: o.artDir,
 		PublicAddress: o.publicAddr, Doors: doorList, DoorsDir: o.doorsDir}
+	if cfg.FTN, err = ftnConfig(o); err != nil {
+		return err
+	}
+	cfg.Files = o.files
+	var linkKey []byte
+	if o.filesWeb != "" {
+		if linkKey, err = filelink.LoadKey(o.filesKey); err != nil {
+			return err
+		}
+		cfg.FileLinks = bbs.FileLinkConfig{URL: o.filesURL, Key: linkKey, TTL: o.filesLinkTTL}
+	}
 	if o.smtpHost != "" {
 		queue, err := newMailQueue(o, log)
 		if err != nil {
@@ -171,6 +213,13 @@ func run() error {
 	}
 	if o.webAddr != "" {
 		serve, err := webServer(ctx, srv, o.webAddr, log)
+		if err != nil {
+			return err
+		}
+		servers = append(servers, serve)
+	}
+	if o.filesWeb != "" {
+		serve, err := filesServer(ctx, o.filesWeb, filelink.Handler(linkKey, o.files, st, log), log)
 		if err != nil {
 			return err
 		}
@@ -267,4 +316,59 @@ func newMailQueue(o options, log *slog.Logger) (*mailer.Queue, error) {
 	}
 	log.Info("email enabled", "smtp", o.smtpHost, "port", o.smtpPort)
 	return mailer.NewQueue(sender, log, mailQueueSize), nil
+}
+
+// ftnConfig turns the -ftn-* flags into the BBS's FidoNet setup.
+func ftnConfig(o options) (bbs.FTNConfig, error) {
+	var c bbs.FTNConfig
+	var err error
+	if c.Addresses, err = ftn.ParseAddrList(o.ftnAddress); err != nil {
+		return c, fmt.Errorf("-ftn-address: %w", err)
+	}
+	if c.Routes.Direct, err = ftn.ParseAddrList(o.ftnDirect); err != nil {
+		return c, fmt.Errorf("-ftn-direct: %w", err)
+	}
+	if o.ftnVia != "" {
+		if c.Routes.Via, err = ftn.ParseAddr(o.ftnVia); err != nil {
+			return c, fmt.Errorf("-ftn-via: %w", err)
+		}
+	}
+	if o.ftnOutbound != "" {
+		if len(c.Addresses) == 0 {
+			return c, errors.New("-ftn-outbound needs -ftn-address")
+		}
+		c.Outbound = ftn.Outbound{Root: o.ftnOutbound, DefaultZone: o.ftnZone}
+	}
+	c.SysopName = o.ftnSysop
+	return c, nil
+}
+
+// filesServer starts the download server for file links. Like the sysop
+// interface it is plain HTTP for loopback, behind a TLS proxy. There is no
+// write timeout: a large file over a slow line takes as long as it takes.
+func filesServer(ctx context.Context, addr string, handler http.Handler, log *slog.Logger) (func() error, error) {
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	hs := &http.Server{
+		Handler:           handler,
+		ReadHeaderTimeout: 10 * time.Second,
+		IdleTimeout:       2 * time.Minute,
+		MaxHeaderBytes:    16 << 10,
+		ErrorLog:          slog.NewLogLogger(log.Handler(), slog.LevelWarn),
+	}
+	log.Info("download server listening", "addr", ln.Addr().String())
+	return func() error {
+		go func() {
+			<-ctx.Done()
+			shutdown, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			_ = hs.Shutdown(shutdown)
+		}()
+		if err := hs.Serve(ln); !errors.Is(err, http.ErrServerClosed) {
+			return err
+		}
+		return nil
+	}, nil
 }

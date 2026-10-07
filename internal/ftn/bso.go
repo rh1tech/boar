@@ -72,6 +72,10 @@ func (o Outbound) Queue(dest Addr, f Flavour, header Packet, msgs []PackedMessag
 	if err := os.MkdirAll(dir, 0o2770); err != nil {
 		return err
 	}
+	// MkdirAll is cut down by the process umask; a point directory the BBS
+	// creates must still be one the mailer can enter. Only its owner can
+	// chmod it, and a directory the mailer made is already right.
+	_ = os.Chmod(dir, 0o2770)
 	bsy := filepath.Join(dir, stem+".bsy")
 	lock, err := os.OpenFile(bsy, os.O_CREATE|os.O_EXCL|os.O_WRONLY, o.mode())
 	if errors.Is(err, fs.ErrExist) {

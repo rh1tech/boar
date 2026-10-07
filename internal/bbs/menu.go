@@ -21,7 +21,7 @@ const (
 
 // mainMenuCounts gathers the numbers shown next to main menu entries.
 type mainMenuCounts struct {
-	unreadMail, newPosts, newEchoes, members, online, inChat int
+	unreadMail, newPosts, newEchoes, newNetmail, newFiles, members, online, inChat int
 }
 
 func (s *session) loadMainMenuCounts() (mainMenuCounts, error) {
@@ -38,6 +38,12 @@ func (s *session) loadMainMenuCounts() (mainMenuCounts, error) {
 		c.newPosts += b.New
 	}
 	if c.newEchoes, err = s.srv.store.EchoUnreadCount(s.user.ID); err != nil {
+		return c, err
+	}
+	if c.newNetmail, err = s.srv.store.NetmailUnread(s.user); err != nil {
+		return c, err
+	}
+	if c.newFiles, err = s.srv.store.NewFilesCount(s.user.ID); err != nil {
 		return c, err
 	}
 	if c.members, err = s.srv.store.UserCount(); err != nil {
@@ -75,6 +81,8 @@ func (s *session) mainMenu() error {
 			{'M', "Mailbox", countNote(c.unreadMail, " new")},
 			{'B', "Message boards", countNote(c.newPosts, " new")},
 			{'E', "FidoNet echoes", countNote(c.newEchoes, " new")},
+			{'T', "FidoNet netmail", countNote(c.newNetmail, " new")},
+			{'F', "File areas", countNote(c.newFiles, " new")},
 			{'C', "Chat room", chatNote},
 			{'P', "Page someone", ""},
 			{'N', "News", ""},
@@ -86,7 +94,7 @@ func (s *session) mainMenu() error {
 			{'O', "Oneliner wall", ""},
 		})
 		s.approvalNotice()
-		keys := "MBECPNDWLUOSG"
+		keys := "MBETFCPNDWLUOSG"
 		bar := []menuItem{{'S', "Settings", ""}}
 		if s.user.Sysop {
 			keys += "!"
@@ -120,6 +128,10 @@ func (s *session) mainMenuAction(k rune) error {
 		return s.boardsMenu()
 	case 'E':
 		return s.echoesMenu()
+	case 'T':
+		return s.netmailMenu()
+	case 'F':
+		return s.filesMenu()
 	case 'C':
 		if stop, err := s.awaitingApproval("Chat"); stop || err != nil {
 			return err

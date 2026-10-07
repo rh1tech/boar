@@ -182,6 +182,61 @@ CREATE TABLE ftn_tossed (
 	tossed_at INTEGER NOT NULL
 );
 `,
+	// FidoNet netmail, both what arrived for the node's addresses and what was
+	// sent from the BBS. author_id is the sender for outgoing mail.
+	`
+CREATE TABLE netmail (
+	id          INTEGER PRIMARY KEY,
+	outgoing    INTEGER NOT NULL DEFAULT 0,
+	msgid       TEXT    NOT NULL UNIQUE,
+	reply_to    TEXT    NOT NULL DEFAULT '',
+	from_name   TEXT    NOT NULL,
+	from_addr   TEXT    NOT NULL,
+	to_name     TEXT    NOT NULL,
+	to_addr     TEXT    NOT NULL,
+	subject     TEXT    NOT NULL,
+	body        TEXT    NOT NULL,
+	posted_at   INTEGER NOT NULL,
+	received_at INTEGER NOT NULL,
+	read_at     INTEGER NOT NULL DEFAULT 0,
+	author_id   INTEGER REFERENCES users(id) ON DELETE SET NULL
+);
+CREATE INDEX netmail_received ON netmail (received_at);
+`,
+	// FidoNet file echoes: areas, the files that arrived in them (path is
+	// relative to the file root), and what each caller has seen.
+	`
+CREATE TABLE file_areas (
+	id          INTEGER PRIMARY KEY,
+	tag         TEXT    NOT NULL UNIQUE,
+	description TEXT    NOT NULL DEFAULT '',
+	created_at  INTEGER NOT NULL
+);
+
+CREATE TABLE files (
+	id          INTEGER PRIMARY KEY,
+	area_id     INTEGER NOT NULL REFERENCES file_areas(id) ON DELETE CASCADE,
+	name        TEXT    NOT NULL,
+	path        TEXT    NOT NULL,
+	size        INTEGER NOT NULL,
+	crc32       TEXT    NOT NULL,
+	description TEXT    NOT NULL DEFAULT '',
+	ldesc       TEXT    NOT NULL DEFAULT '',
+	origin      TEXT    NOT NULL DEFAULT '',
+	from_addr   TEXT    NOT NULL DEFAULT '',
+	received_at INTEGER NOT NULL,
+	downloads   INTEGER NOT NULL DEFAULT 0,
+	UNIQUE (area_id, name)
+);
+CREATE INDEX files_area ON files (area_id, id);
+
+CREATE TABLE file_reads (
+	user_id      INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+	area_id      INTEGER NOT NULL REFERENCES file_areas(id) ON DELETE CASCADE,
+	last_seen_id INTEGER NOT NULL,
+	PRIMARY KEY (user_id, area_id)
+);
+`,
 }
 
 func (s *Store) migrate() error {

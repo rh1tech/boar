@@ -98,6 +98,10 @@ func TestMigrationUpgradesExistingDatabase(t *testing.T) {
 	a := mustUser(t, s, "Alice")
 	// Roll the schema back to v1 as an older build would have left it.
 	for _, stmt := range []string{
+		"DROP TABLE file_reads",
+		"DROP TABLE files",
+		"DROP TABLE file_areas",
+		"DROP TABLE netmail",
 		"DROP TABLE ftn_tossed",
 		"DROP TABLE ftn_files",
 		"DROP TABLE echo_reads",

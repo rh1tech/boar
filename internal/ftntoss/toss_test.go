@@ -118,3 +118,60 @@ func TestTossReusedNameIsStillTossed(t *testing.T) {
 		t.Fatalf("tossed/ holds %d files, want both", len(entries))
 	}
 }
+
+// Netmail for the node lands in the netmail box; netmail for others and
+// echomail left by an unpassworded caller do not land anywhere.
+func TestTossNetmailAndInsecureEchomail(t *testing.T) {
+	dir := t.TempDir()
+	secure, insecure := filepath.Join(dir, "in"), filepath.Join(dir, "in.insecure")
+	for _, d := range []string{secure, insecure} {
+		if err := os.MkdirAll(d, 0o755); err != nil {
+			t.Fatal(err)
+		}
+	}
+	st, err := store.Open(store.Config{Path: filepath.Join(dir, "boar.db"), KDFIterations: 1000})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer st.Close()
+	sysop, err := st.CreateUser("Root", "secret12", "Here")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	us, stranger := ftn.MustParseAddr("2:5030/1651"), ftn.MustParseAddr("2:5020/999")
+	now := time.Date(2026, 10, 7, 9, 0, 0, 0, time.UTC)
+	netmail := func(to ftn.Addr, id string) ftn.PackedMessage {
+		m := ftn.Message{From: "Someone", To: "Sysop", Subject: id, Orig: stranger, Dest: to, Date: now,
+			MsgID: "2:5020/999 " + id, Charset: ftn.CP437, Body: "Hello.\n"}
+		return m.Pack()
+	}
+	writePkt := func(path string, msgs ...ftn.PackedMessage) {
+		f, err := os.Create(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		pkt := ftn.Packet{From: stranger, To: us, Created: now, Messages: msgs}
+		if _, err := pkt.WriteTo(f); err != nil {
+			t.Fatal(err)
+		}
+	}
+	writePkt(filepath.Join(insecure, "00000001.pkt"), netmail(us, "for-us"), netmail(ftn.MustParseAddr("2:1/1"), "not-us"))
+	writePacket(t, filepath.Join(insecure, "00000002.pkt"), "2:5020/999 e1", "injected")
+
+	stats, err := ftntoss.Tosser{DB: st, Own: []ftn.Addr{us}}.TossAll(secure, insecure)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if stats.Netmail != 1 || stats.Stored != 1 || stats.Skipped != 2 {
+		t.Fatalf("stats = %+v", stats)
+	}
+	got, err := st.NetmailFor(sysop)
+	if err != nil || len(got) != 1 || got[0].Subject != "for-us" {
+		t.Fatalf("netmail box = %+v, %v", got, err)
+	}
+	if areas, _ := st.EchoAreas(sysop.ID); len(areas) != 0 {
+		t.Fatalf("echomail from the non-secure inbound was imported: %+v", areas)
+	}
+}

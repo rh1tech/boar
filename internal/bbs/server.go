@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"boar/internal/doors"
+	"boar/internal/ftn"
 	"boar/internal/store"
 	"boar/internal/telnet"
 )
@@ -63,7 +64,36 @@ type Config struct {
 	// per-node drop file folders.
 	Doors    []doors.Door
 	DoorsDir string
+
+	// FTN is the node's FidoNet setup; a zero value turns netmail off.
+	FTN FTNConfig
+
+	// Files is where file-echo files are kept; "" turns the file areas off.
+	// FileLinks, when its URL is set, lets callers fetch them on the web.
+	Files     string
+	FileLinks FileLinkConfig
 }
+
+// FileLinkConfig is how the BBS hands out web download links.
+type FileLinkConfig struct {
+	URL string        // prefix the token is appended to, e.g. https://bbs.example.com/f/
+	Key []byte        // filelink signing key
+	TTL time.Duration // how long a link works
+}
+
+// FTNConfig is what the BBS needs to file and send netmail.
+type FTNConfig struct {
+	// Addresses are this node's; the first is its main address, which
+	// packets come from. Netmail for any of them is the BBS's.
+	Addresses []ftn.Addr
+	Outbound  ftn.Outbound // binkd's, for the default zone
+	Routes    ftn.Routes
+	// SysopName signs the sysop's netmail; FidoNet expects a real name.
+	SysopName string
+}
+
+// enabled reports whether netmail can be sent.
+func (c FTNConfig) enabled() bool { return len(c.Addresses) > 0 && c.Outbound.Root != "" }
 
 // limits groups the per-IP and per-user rate limiters. The ones guarding
 // logins and signups are saved in the database and survive restarts.

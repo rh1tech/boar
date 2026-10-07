@@ -17,17 +17,38 @@ import (
 	"boar/internal/store"
 )
 
-// Stats counts what one Toss pass did.
+// Stats counts what one Toss pass did. Netmail is the share of Stored that
+// was netmail for this node.
 type Stats struct {
-	Files, Stored, Duplicate, Skipped, Failed int
+	Files, Stored, Duplicate, Skipped, Failed, Netmail int
+	// FilesIn counts file-echo files put in place; FilesBad those set aside.
+	FilesIn, FilesBad int
+}
+
+// Tosser imports inbound FidoNet mail into the BBS.
+type Tosser struct {
+	DB *store.Store
+	// Own is this node's addresses: netmail for them goes into the netmail
+	// box. Netmail for anyone else is counted as skipped.
+	Own []ftn.Addr
+	// Files, when set, is where file echoes go; nil leaves TICs alone.
+	Files *FileStore
 }
 
 // Toss reads every mail packet in inbound, stores echomail in db, and moves
 // each file to done (or bad if it could not be read). A file whose content
 // was tossed before is only moved aside: names are no guide, since mailers
-// reuse them. Netmail is counted as skipped until the BBS has a
-// netmail box of its own.
+// reuse them.
 func Toss(db *store.Store, inbound, done, bad string) (Stats, error) {
+	return Tosser{DB: db}.Toss(inbound, done, bad, true)
+}
+
+// Toss is the package Toss with this Tosser's settings. secure says inbound
+// holds what password-protected sessions delivered: echomail is only taken
+// from there, since anybody can call and leave a packet in the other one.
+// Netmail is taken from both, because that is how strangers write to a node.
+func (t Tosser) Toss(inbound, done, bad string, secure bool) (Stats, error) {
+	db := t.DB
 	var st Stats
 	if inbound == "" {
 		return st, nil
@@ -65,7 +86,18 @@ func Toss(db *store.Store, inbound, done, bad string) (Stats, error) {
 		}
 		st.Files++
 		err = ftn.EachMessage(path, func(m ftn.Message) error {
-			res, err := db.ImportEcho(m)
+			var res store.TossResult
+			var err error
+			switch {
+			case m.Area == "" && ftn.Contains(t.Own, m.Dest):
+				if res, err = db.ImportNetmail(m); res == store.TossStored {
+					st.Netmail++
+				}
+			case m.Area != "" && secure:
+				res, err = db.ImportEcho(m)
+			default:
+				res = store.TossSkipped
+			}
 			if err != nil {
 				return err
 			}
@@ -92,6 +124,11 @@ func Toss(db *store.Store, inbound, done, bad string) (Stats, error) {
 			return st, err
 		}
 		if err := moveAside(path, done, e.Name()); err != nil {
+			return st, err
+		}
+	}
+	if secure && t.Files != nil {
+		if err := t.tossTICs(inbound, done, bad, &st); err != nil {
 			return st, err
 		}
 	}
@@ -154,6 +191,12 @@ func DefaultDirs(inbound string) (done, bad string) {
 // TossAll runs Toss over every inbound directory. Secure and insecure
 // inbounds that live as siblings share one tossed/ and bad/ under the spool.
 func TossAll(db *store.Store, inbounds ...string) (Stats, error) {
+	return Tosser{DB: db}.TossAll(inbounds...)
+}
+
+// TossAll is the package TossAll with this Tosser's settings. An inbound
+// named in.insecure is the non-secure one.
+func (t Tosser) TossAll(inbounds ...string) (Stats, error) {
 	var total Stats
 	for _, in := range inbounds {
 		if in == "" {
@@ -162,15 +205,20 @@ func TossAll(db *store.Store, inbounds ...string) (Stats, error) {
 		done, bad := DefaultDirs(in)
 		// Secure and insecure share one tossed/bad under the spool root when
 		// both live as siblings (in / in.insecure).
+		secure := true
 		if strings.HasSuffix(filepath.Clean(in), "in.insecure") {
 			done, bad = DefaultDirs(filepath.Join(filepath.Dir(in), "in"))
+			secure = false
 		}
-		st, err := Toss(db, in, done, bad)
+		st, err := t.Toss(in, done, bad, secure)
 		total.Files += st.Files
 		total.Stored += st.Stored
 		total.Duplicate += st.Duplicate
 		total.Skipped += st.Skipped
 		total.Failed += st.Failed
+		total.Netmail += st.Netmail
+		total.FilesIn += st.FilesIn
+		total.FilesBad += st.FilesBad
 		if err != nil {
 			return total, err
 		}

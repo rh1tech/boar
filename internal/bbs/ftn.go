@@ -40,14 +40,21 @@ func (s *Server) RunTosser(ctx context.Context, inbounds ...string) error {
 }
 
 func (s *Server) tossOnce(dirs []string) {
-	st, err := ftntoss.TossAll(s.store, dirs...)
+	t := ftntoss.Tosser{DB: s.store, Own: s.cfg.FTN.Addresses}
+	if s.cfg.Files != "" {
+		t.Files = &ftntoss.FileStore{Root: s.cfg.Files}
+	}
+	st, err := t.TossAll(dirs...)
 	if err != nil {
 		s.log.Warn("ftn toss failed", "err", err)
 		return
 	}
+	if st.FilesIn > 0 || st.FilesBad > 0 {
+		s.log.Info("file echoes tossed", "in", st.FilesIn, "set_aside", st.FilesBad)
+	}
 	if st.Files > 0 {
 		s.log.Info("ftn tossed",
-			"files", st.Files, "stored", st.Stored,
+			"files", st.Files, "stored", st.Stored, "netmail", st.Netmail,
 			"duplicate", st.Duplicate, "skipped", st.Skipped, "failed", st.Failed)
 	}
 }
