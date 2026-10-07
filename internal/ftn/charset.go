@@ -185,3 +185,14 @@ func Fits(s string, cs Charset) bool {
 	}
 	return true
 }
+
+// DefaultCharset is the charset to assume for a message from a system that
+// writes no CHRS line. Region 50 (Russia, nets 5000-5099) writes CP866 — a
+// robot's reply there is Cyrillic in CP866 whether it says so or not —
+// and everyone else the FTS default, CP437.
+func DefaultCharset(from Addr) Charset {
+	if from.Zone == 2 && from.Net >= 5000 && from.Net <= 5099 {
+		return CP866
+	}
+	return CP437
+}

@@ -165,7 +165,7 @@ func describe(name string, only []ftn.Addr) (string, int, error) {
 		var body strings.Builder
 		n := 0
 		for _, pm := range p.Messages {
-			m := ftn.ParseMessage(pm, p.From, p.To, ftn.CP437)
+			m := ftn.ParseMessage(pm, p.From, p.To, ftn.DefaultCharset(p.From))
 			if only != nil && !netmailFor(m, only) {
 				continue
 			}
@@ -390,7 +390,7 @@ func route(args []string) error {
 			if !pm.IsNetmail() {
 				continue
 			}
-			m := ftn.ParseMessage(pm, np.Pkt.From, np.Pkt.To, ftn.CP437)
+			m := ftn.ParseMessage(pm, np.Pkt.From, np.Pkt.To, ftn.DefaultCharset(np.Pkt.From))
 			if ftn.Contains(own, m.Dest) {
 				continue
 			}

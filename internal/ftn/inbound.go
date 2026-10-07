@@ -108,7 +108,7 @@ func ReadPackets(name string) ([]NamedPacket, error) {
 func EachMessage(name string, fn func(Message) error) error {
 	return EachPacket(name, func(np NamedPacket) error {
 		for _, pm := range np.Pkt.Messages {
-			if err := fn(ParseMessage(pm, np.Pkt.From, np.Pkt.To, CP437)); err != nil {
+			if err := fn(ParseMessage(pm, np.Pkt.From, np.Pkt.To, DefaultCharset(np.Pkt.From))); err != nil {
 				return err
 			}
 		}

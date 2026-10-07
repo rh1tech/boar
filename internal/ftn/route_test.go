@@ -50,3 +50,20 @@ func TestIsNetmail(t *testing.T) {
 		t.Errorf("ParseAddrList = %v", got)
 	}
 }
+
+func TestDefaultCharset(t *testing.T) {
+	for addr, want := range map[string]Charset{
+		"2:5030/731": CP866, "2:5020/715": CP866, "2:5099/1": CP866,
+		"2:410/9": CP437, "2:5100/1": CP437, "1:5030/1": CP437,
+	} {
+		if got := DefaultCharset(MustParseAddr(addr)); got != want {
+			t.Errorf("DefaultCharset(%s) = %v, want %v", addr, got, want)
+		}
+	}
+	// A CHRS-less CP866 line from the hub reads as Russian.
+	pm := PackedMessage{Text: Encode("Московский нодлист", CP866), To: []byte("Sysop")}
+	m := ParseMessage(pm, MustParseAddr("2:5030/731"), MustParseAddr("2:5030/1651"), DefaultCharset(MustParseAddr("2:5030/731")))
+	if m.Body != "Московский нодлист" {
+		t.Errorf("body = %q", m.Body)
+	}
+}
