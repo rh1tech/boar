@@ -275,17 +275,31 @@ when the request comes from loopback.
 
 ## FidoNet (in progress)
 
-Boar is joining FidoNet through Region 41 (Greece). The mailer is binkd,
-Debian's package, with the config in `deploy/binkd.cfg`, installed on the
-server as `/etc/binkd/binkd.cfg`.
-- **Address:** 2:410/9999 for now, the temporary address Policy 4.07 suggests
-  for a system applying to a net.
-- **Where mail lives:** binkd's spool in `/var/spool/ftn` (`in`,
-  `in.insecure`, `tmp`, `out`), owned by the `ftn` group. The `boar` user is
-  a member.
-- **Links:** passworded links go in `/etc/binkd/nodes.inc`, which is not in
-  the repository.
-- **Firewall:** binkp listens on 24554, open to everyone.
+Boar's main node is **2:5030/1651** (Net 5030, Saint Petersburg) on spb1,
+where the BBS runs. Its AKA **2:410/51** (Petros Argyrakis, Net 410 /
+Region 41) is answered by rbx1, which relays everything to spb1. Until
+2026-10-07 it was the other way round.
+
+```
+Russian hubs  ↔  spb1 2:5030/1651  ↔  rbx1 2:5030/1651.1 + 2:410/51  ↔  Petros 2:410/9
+                 BBS, tosser           relay (point)                    Greece / EU
+```
+
+- **spb1** (`deploy/binkd-spb1.cfg`, `deploy/install-spb1-ftn.sh`): the node.
+  Boar tosses its inbound every half minute; binkd emails the sysop what
+  arrived. It polls rbx1 every 10 minutes (`binkd-poll-rbx1.timer`). Mail
+  leaves through a loopback postfix relaying to rbx1:2525 over TLS, pinned
+  to rbx1's certificate.
+- **rbx1** (`deploy/binkd.cfg`, `deploy/install-rbx1-relay.sh`): the relay.
+  It keeps the Petros link, copies everything it receives into spb1's
+  filebox (`ftn-forward-spb1.sh`) and calls spb1 straight away.
+- **Passwords:** session passwords live only in `/etc/binkd/nodes.inc` on
+  each host (template: `deploy/nodes.spb1.inc.example`).
+- **Spool:** `/var/spool/ftn` on each host, `ftn` group; `boar` is a member
+  on spb1.
+- **Firewall:** binkp on 24554 on both hosts.
+- **Areafix** (D'Bridge on Petros): password = session password on the
+  subject; optional `-L` / `-R`. Linked list: `deploy/areas.linked`.
 
 `internal/ftn` is the FTN layer:
 - addresses, and Type 2+ packets (FTS-0001, FSC-0039/0048);
@@ -293,20 +307,26 @@ server as `/etc/binkd/binkd.cfg`.
 - CHRS character sets: CP437, CP866, Latin-1 and UTF-8;
 - binkd's outbound layout (FTS-5005).
 
-Until the BBS tosses mail itself, `boar-ftn` is the toolbox:
+Echomail reading is live: the BBS tosses the inbound every half minute (see
+`-ftn-inbound`) and callers open **E** from the main menu.
 
 ```sh
-boar-ftn netmail -from 2:410/9999 -to 2:41/0 -to-name "Petros Argyrakis" \
-    -subject "Node application" < letter.txt     # queued crash, binkd calls now
-boar-ftn show /var/spool/ftn/in/*.pkt           # read what arrived
+boar-ftn netmail -from 2:410/51 -to 2:410/9 -to-name "Petros Argyrakis" \
+    -subject "Test" < letter.txt     # queued crash, binkd calls now
+# Areafix (password on subject):
+printf '%s\n' BINKD LINUX | boar-ftn netmail -from 2:410/51 -to 2:410/9 \
+    -to-name Areafix -subject "$AREAFIX_PW"
+boar-ftn show /var/spool/ftn/in/*               # read what arrived
 boar-ftn notify -to you@example.com FILE        # email what arrived
+boar-ftn toss -data /var/lib/boar/boar.db       # import echoes into the BBS
 ```
 
-binkd runs `notify` for every packet and mail bundle it receives, through its
-`exec` line in `deploy/binkd.cfg`. The sysop gets each netmail by email, and
-the file stays in the inbound for the BBS to import.
+binkd on spb1 runs `notify` for every received packet/bundle (`*F` in
+`deploy/binkd-spb1.cfg`). The BBS imports echomail into SQLite and moves the file
+to `/var/spool/ftn/tossed` (or `bad`). Netmail import is still later.
 
-Run it as the `ftn` user, or as `boar`, so binkd can read what it writes.
+Run outbound tools as `ftn` or `boar`. The BBS needs the `ftn` group and
+write access to the spool (see `deploy/boar.service`).
 
 ## Layout
 
@@ -319,8 +339,10 @@ internal/store/    SQLite: users, blocks, mail, boards, news, oneliners, events,
                    email verification
 internal/mailer/   SMTP sending and the background mail queue
 internal/doors/    door config, drop files, running door programs
+internal/ftn/      FidoNet addresses, packets, charsets, outbound BSO layout
+internal/ftntoss/  inbound tosser: packets → echo_messages in SQLite
 internal/bbs/      server, SSH transport, nodes, sessions, menus, mail,
-                   boards, chat, sysop tools, screen layout
+                   boards, echoes, chat, sysop tools, screen layout
 internal/bbs/art/  built-in screens (*.ans), embedded into the binary
 internal/web/      sysop web interface: sessions, pages, ANSI art preview
 ```
@@ -400,9 +422,11 @@ with mode `0600`.
 
 ## Deployment
 
-`deploy/install.sh user@host` builds Linux binaries and installs or updates
-Boar BBS on a Debian-style server over SSH. The remote user needs sudo. The
-script sets up:
+`deploy/install.sh` builds Linux binaries and installs or updates Boar BBS
+over SSH. With no arguments it deploys to spb1 (`xtreme@spb1.re-hash.org`,
+port 51622, where it runs since 2026-10-07); `deploy/install.sh user@host
+[port]` deploys elsewhere. The remote user needs sudo. Without a working
+local Go it builds in a `golang` container. The script sets up:
 
 - the binaries in `/opt/boar/bin`, a `boar` system user, and a locked-down
   systemd unit (`deploy/boar.service`) with telnet on port 23, SSH on 2222
@@ -412,7 +436,9 @@ script sets up:
 - data in `/var/lib/boar`: the database, the SSH host key, custom art and
   drop files. Updates never touch it.
 
-Open ports 23 and 2222 in the firewall. The web interface needs a TLS proxy.
+Open ports 23 and 2222 in the firewall (on spb1: ufw, and the router's
+forwards). FidoNet is set up separately, by `deploy/install-spb1-ftn.sh` and
+`deploy/install-rbx1-relay.sh`. The web interface needs a TLS proxy.
 `deploy/nginx-boar-web.conf` is the nginx vhost, with a Let's Encrypt
 certificate. boar.rh1.tech points straight at the server rather than through
 Cloudflare, because telnet can't go through it. Logs: `journalctl -u boar -f`.

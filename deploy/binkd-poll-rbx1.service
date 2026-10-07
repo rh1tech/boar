@@ -1,5 +1,5 @@
 [Unit]
-Description=Poll Boar BBS boss (2:410/51 on rbx1) for FidoNet mail
+Description=Poll the relay (2:5030/1651.1 on rbx1) for FidoNet mail
 After=network-online.target binkd.service
 Wants=network-online.target
 
@@ -8,5 +8,5 @@ Type=oneshot
 User=ftn
 Group=ftn
 # -p: one-shot client; -P: force poll even with an empty outbound.
-ExecStart=/usr/sbin/binkd -p -P2:410/51 /etc/binkd/binkd.cfg
+ExecStart=/usr/sbin/binkd -p -P2:5030/1651.1 /etc/binkd/binkd.cfg
 Nice=10

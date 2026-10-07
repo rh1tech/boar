@@ -1,8 +1,9 @@
 # Passworded binkd links for spb1. NOT in git on the live server —
 # this is the template. Real secrets go only in /etc/binkd/nodes.inc.
 #
-# Boss (private backbone). Filebox = everything received on spb1 for rbx1.
-#node 2:410/51@fidonet rbx1.re-hash.org,217.182.173.177 BACKBONE_PASSWORD - /var/spool/ftn/obox.boss -
+# rbx1, the relay (point 2:5030/1651.1; private backbone). Filebox = what
+# spb1 has for it to pass on.
+#node 2:5030/1651.1@fidonet rbx1.re-hash.org,217.182.173.177 BACKBONE_PASSWORD - /var/spool/ftn/obox.rbx1 -
 
 # Net 5030 hub (session + Areafix password from NC):
 #node 2:5030/731@fidonet f731.s0t.ru,217.71.231.2 HUB_PASSWORD -
