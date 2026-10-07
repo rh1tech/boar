@@ -55,12 +55,12 @@ def page(lang, t, h1=None):
     <h2 id="call">{t["call"]}</h2>
     <div class="way">
       <h3>SSH <span class="tag">{t["recommended"]}</span></h3>
-      <p class="cmd">ssh bbs@boar.rh1.tech</p>
+      <p class="cmd">ssh bbs@boar-bbs.rh1.tech</p>
       <p>{t["ssh"]}</p>
     </div>
     <div class="way">
       <h3>Telnet</h3>
-      <p class="cmd">telnet boar.rh1.tech</p>
+      <p class="cmd">telnet boar-bbs.rh1.tech</p>
       <p>{t["telnet"]}</p>
     </div>
     <div class="way">
@@ -104,7 +104,7 @@ def page(lang, t, h1=None):
 
 EN = dict(
     title="Boar BBS: a bulletin board you call over SSH or telnet",
-    desc="Boar BBS is an old-style bulletin board: private mail, message boards, chat, a door game and ANSI art. Call it with ssh bbs@boar.rh1.tech or telnet boar.rh1.tech.",
+    desc="Boar BBS is an old-style bulletin board: private mail, message boards, chat, a door game and ANSI art. Call it with ssh bbs@boar-bbs.rh1.tech or telnet boar-bbs.rh1.tech.",
     langnav="Language",
     screenalt="The Boar BBS login screen: the word BOAR in white and yellow block letters, a framed banner reading Boar BBS, the wild boar, private mail, est. 2026, and the prompt Handle (or NEW to register).",
     h1="A bulletin board you call from a terminal.",
@@ -113,7 +113,7 @@ EN = dict(
     ssh="Any user name works: you sign in to the BBS itself after connecting. Once you have an account you can add your SSH key under Settings, and then this command logs you straight in.",
     telnet="Port 23. Telnet sends everything unencrypted, your password included, so use SSH when you can.",
     client="A BBS client",
-    clienttext="SyncTERM, NetRunner or any other ANSI-BBS client works. Add <code>boar.rh1.tech</code>, telnet on port 23 or SSH on port 22, and pick option 2 (CP437) when the BBS asks about your terminal.",
+    clienttext="SyncTERM, NetRunner or any other ANSI-BBS client works. Add <code>boar-bbs.rh1.tech</code>, telnet on port 23 or SSH on port 22, and pick option 2 (CP437) when the BBS asks about your terminal.",
     fp="The first time SSH asks about the server's key, check that it's",
     first="Your first call",
     steps=[
@@ -140,7 +140,7 @@ EN = dict(
 
 RU = dict(
     title="Boar BBS — вход по SSH и telnet",
-    desc="Boar BBS — BBS в духе девяностых: личная почта, конференции, чат, игры и ANSI-графика. Подключение: ssh bbs@boar.rh1.tech или telnet boar.rh1.tech.",
+    desc="Boar BBS — BBS в духе девяностых: личная почта, конференции, чат, игры и ANSI-графика. Подключение: ssh bbs@boar-bbs.rh1.tech или telnet boar-bbs.rh1.tech.",
     langnav="Язык",
     screenalt="Экран входа Boar BBS: надпись BOAR крупными блочными буквами, рамка с заголовком Boar BBS и приглашение Handle (or NEW to register).",
     h1="BBS, на которую заходят через терминал.",
@@ -149,7 +149,7 @@ RU = dict(
     ssh="Имя пользователя подойдёт любое: логин и пароль BBS спросит уже после подключения. После регистрации можно добавить в настройках свой SSH-ключ — тогда вход будет сразу, без пароля.",
     telnet="Порт 23. Telnet передаёт данные без шифрования, в том числе пароль, поэтому по возможности используйте SSH.",
     client="BBS-клиент",
-    clienttext="Подойдёт SyncTERM, NetRunner или любой другой клиент для ANSI-BBS. Укажите адрес <code>boar.rh1.tech</code> (telnet — порт 23, SSH — порт 22), а когда BBS спросит про терминал, выберите 2 (CP437).",
+    clienttext="Подойдёт SyncTERM, NetRunner или любой другой клиент для ANSI-BBS. Укажите адрес <code>boar-bbs.rh1.tech</code> (telnet — порт 23, SSH — порт 22), а когда BBS спросит про терминал, выберите 2 (CP437).",
     fp="При первом подключении по SSH проверьте отпечаток ключа сервера:",
     first="Первый вход",
     steps=[

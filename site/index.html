@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Boar BBS: a bulletin board you call over SSH or telnet</title>
-<meta name="description" content="Boar BBS is an old-style bulletin board: private mail, message boards, chat, a door game and ANSI art. Call it with ssh bbs@boar.rh1.tech or telnet boar.rh1.tech.">
+<meta name="description" content="Boar BBS is an old-style bulletin board: private mail, message boards, chat, a door game and ANSI art. Call it with ssh bbs@boar-bbs.rh1.tech or telnet boar-bbs.rh1.tech.">
 <link rel="canonical" href="https://boar.rh1.tech/">
 <link rel="alternate" hreflang="en" href="https://boar.rh1.tech/">
 <link rel="alternate" hreflang="ru" href="https://boar.rh1.tech/ru/">
@@ -47,17 +47,17 @@
     <h2 id="call">How to call</h2>
     <div class="way">
       <h3>SSH <span class="tag">encrypted</span></h3>
-      <p class="cmd">ssh bbs@boar.rh1.tech</p>
+      <p class="cmd">ssh bbs@boar-bbs.rh1.tech</p>
       <p>Any user name works: you sign in to the BBS itself after connecting. Once you have an account you can add your SSH key under Settings, and then this command logs you straight in.</p>
     </div>
     <div class="way">
       <h3>Telnet</h3>
-      <p class="cmd">telnet boar.rh1.tech</p>
+      <p class="cmd">telnet boar-bbs.rh1.tech</p>
       <p>Port 23. Telnet sends everything unencrypted, your password included, so use SSH when you can.</p>
     </div>
     <div class="way">
       <h3>A BBS client</h3>
-      <p>SyncTERM, NetRunner or any other ANSI-BBS client works. Add <code>boar.rh1.tech</code>, telnet on port 23 or SSH on port 22, and pick option 2 (CP437) when the BBS asks about your terminal.</p>
+      <p>SyncTERM, NetRunner or any other ANSI-BBS client works. Add <code>boar-bbs.rh1.tech</code>, telnet on port 23 or SSH on port 22, and pick option 2 (CP437) when the BBS asks about your terminal.</p>
     </div>
     <p class="dim">The first time SSH asks about the server's key, check that it's <span class="fp">SHA256:xMvzbhi5k5OnnNhmTObOjBzk6nGVrIRYRJGDP4aPNuI</span> (ED25519)</p>
   </section>

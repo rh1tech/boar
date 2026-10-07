@@ -18,7 +18,7 @@ ExecStart=/opt/boar/bin/boar \
   -art /var/lib/boar/art \
   -doors /etc/boar/doors.json \
   -doors-dir /var/lib/boar/doors \
-  -public-address boar.rh1.tech:2222 \
+  -public-address boar-bbs.rh1.tech:2222 \
   -web 127.0.0.1:8023 \
   -ftn-inbound /var/spool/ftn/in \
   -ftn-inbound-nonsecure /var/spool/ftn/in.insecure \

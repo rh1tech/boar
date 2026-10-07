@@ -280,6 +280,14 @@ where the BBS runs. Its AKA **2:410/51** (Petros Argyrakis, Net 410 /
 Region 41) is answered by rbx1, which relays everything to spb1. Until
 2026-10-07 it was the other way round.
 
+| Name | Host | What |
+|---|---|---|
+| `boar-bbs.rh1.tech` | spb1 | the BBS: telnet 23, SSH 2222 |
+| `boar-sysop.rh1.tech` | spb1 | the sysop web interface |
+| `ru.boar.rh1.tech` | spb1 | binkp for 2:5030/1651 |
+| `boar.rh1.tech` | rbx1 | binkp for 2:410/51 (its INA in the nodelist), and the public page |
+| `gr.boar.rh1.tech` | rbx1 | an alias of `boar.rh1.tech` |
+
 ```
 Russian hubs  ↔  spb1 2:5030/1651  ↔  rbx1 2:5030/1651.1 + 2:410/51  ↔  Petros 2:410/9
                  BBS, tosser           relay (point)                    Greece / EU
@@ -440,8 +448,8 @@ Open ports 23 and 2222 in the firewall (on spb1: ufw, and the router's
 forwards). FidoNet is set up separately, by `deploy/install-spb1-ftn.sh` and
 `deploy/install-rbx1-relay.sh`. The web interface needs a TLS proxy.
 `deploy/nginx-boar-web.conf` is the nginx vhost, with a Let's Encrypt
-certificate. boar.rh1.tech points straight at the server rather than through
-Cloudflare, because telnet can't go through it. Logs: `journalctl -u boar -f`.
+certificate. boar-bbs.rh1.tech points straight at the server rather than
+through Cloudflare, because telnet can't go through it. Logs: `journalctl -u boar -f`.
 
 ## Development
 
