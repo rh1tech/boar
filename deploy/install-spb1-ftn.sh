@@ -55,7 +55,8 @@ CONF
 systemctl disable --now binkd-poll-boss.timer >/dev/null 2>&1 || true
 rm -f /etc/systemd/system/binkd-poll-boss.service /etc/systemd/system/binkd-poll-boss.timer \
   /usr/local/lib/boar/ftn-forward-boss.sh
-install -m 644 "$HERE/binkd-poll-rbx1.service" "$HERE/binkd-poll-rbx1.timer" /etc/systemd/system/
+install -m 644 "$HERE/binkd-poll-rbx1.service" "$HERE/binkd-poll-rbx1.timer" \
+  "$HERE/binkd-poll-hub.service" "$HERE/binkd-poll-hub.timer" /etc/systemd/system/
 
 echo "[ftn] mail relay..."
 echo "postfix postfix/main_mailer_type select Satellite system" | debconf-set-selections
@@ -94,8 +95,10 @@ if [ -e /etc/letsencrypt/live/boar-bbs.rh1.tech/fullchain.pem ]; then
 fi
 
 systemctl daemon-reload
-systemctl enable binkd.service binkd-poll-rbx1.timer >/dev/null 2>&1
+# The hub never calls in: what it holds for us (netmail, robot answers,
+# echomail and files once linked) is collected by this poll.
+systemctl enable binkd.service binkd-poll-rbx1.timer binkd-poll-hub.timer >/dev/null 2>&1
 systemctl restart binkd.service
-systemctl start binkd-poll-rbx1.timer
+systemctl start binkd-poll-rbx1.timer binkd-poll-hub.timer
 sleep 2
-systemctl is-active binkd.service binkd-poll-rbx1.timer postfix.service
+systemctl is-active binkd.service binkd-poll-rbx1.timer binkd-poll-hub.timer postfix.service

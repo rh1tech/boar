@@ -1,0 +1,12 @@
+[Unit]
+Description=Poll the Net 5030 hub (2:5030/731) for FidoNet mail held for 2:5030/1651
+After=network-online.target binkd.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ftn
+Group=ftn
+# -p: one-shot client; -P: force a poll even with an empty outbound.
+ExecStart=/usr/sbin/binkd -p -P2:5030/731 /etc/binkd/binkd.cfg
+Nice=10

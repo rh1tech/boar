@@ -1,0 +1,12 @@
+[Unit]
+Description=Poll the Net 5030 hub (2:5030/731) every hour
+
+[Timer]
+OnBootSec=7m
+OnUnitActiveSec=1h
+RandomizedDelaySec=5m
+Persistent=true
+Unit=binkd-poll-hub.service
+
+[Install]
+WantedBy=timers.target
