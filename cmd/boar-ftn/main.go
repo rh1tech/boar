@@ -6,13 +6,16 @@
 //	boar-ftn netmail -from 2:410/9999 -to 2:41/0 -to-name "Petros Argyrakis" \
 //	    -subject "Node application" < letter.txt
 //	boar-ftn show /var/spool/ftn/in/*.pkt
-//	boar-ftn notify -to sysop@example.com FILE
+//	boar-ftn notify -to sysop@example.com [-for 2:5030/1651,...] FILE
 //	boar-ftn toss -data /var/lib/boar/boar.db
 //
 // netmail queues one message in binkd's outbound (crash by default, so binkd
 // calls straight away). show prints packets, for checking what arrived.
 // notify emails the sysop what arrived; binkd runs it for every received
-// packet or mail bundle (see deploy/binkd.cfg). toss imports echomail into
+// packet or mail bundle (see deploy/binkd.cfg). With -for it reports only
+// netmail addressed to those addresses, and sends nothing when there is none:
+// each node announces its own netmail, and a bundle relayed between nodes is
+// not announced twice. toss imports echomail into
 // the BBS database so callers can read it. It never deletes unreadable
 // mail: those go to the bad/ folder.
 package main
@@ -126,7 +129,7 @@ func netmail(args []string) error {
 
 func show(files []string) error {
 	for _, name := range files {
-		text, err := describe(name)
+		text, _, err := describe(name, nil)
 		if err != nil {
 			return err
 		}
@@ -136,25 +139,72 @@ func show(files []string) error {
 }
 
 // describe renders a packet, or every packet inside a mail bundle.
-func describe(name string) (string, error) {
+// describe prints the packets in name and their messages. With only set it
+// prints just the netmail addressed to one of those addresses, and the count
+// says how many messages it printed.
+func describe(name string, only []ftn.Addr) (string, int, error) {
 	packets, err := ftn.ReadPackets(name)
 	if err != nil {
-		return "", fmt.Errorf("%s: %w", name, err)
+		return "", 0, fmt.Errorf("%s: %w", name, err)
 	}
 	var b strings.Builder
+	shown := 0
 	for _, np := range packets {
 		p := np.Pkt
-		fmt.Fprintf(&b, "== %s: %s -> %s, %s, %d message(s)\n", np.Name, p.From, p.To, p.Created.Format(time.RFC3339), len(p.Messages))
+		var body strings.Builder
+		n := 0
 		for _, pm := range p.Messages {
 			m := ftn.ParseMessage(pm, p.From, p.To, ftn.CP437)
+			if only != nil && !netmailFor(m, only) {
+				continue
+			}
 			where := "netmail " + m.Orig.String() + " -> " + m.Dest.String()
 			if m.Area != "" {
 				where = "echo " + m.Area + " from " + m.Orig.String()
 			}
-			fmt.Fprintf(&b, "-- %s | %s -> %s | %s | %s | %s\n%s\n\n", where, m.From, m.To, m.Subject, m.Charset, m.Date.Format("2006-01-02 15:04"), m.Body)
+			fmt.Fprintf(&body, "-- %s | %s -> %s | %s | %s | %s\n%s\n\n", where, m.From, m.To, m.Subject, m.Charset, m.Date.Format("2006-01-02 15:04"), m.Body)
+			n++
+		}
+		if only != nil && n == 0 {
+			continue
+		}
+		fmt.Fprintf(&b, "== %s: %s -> %s, %s, %d message(s)\n", np.Name, p.From, p.To, p.Created.Format(time.RFC3339), len(p.Messages))
+		b.WriteString(body.String())
+		shown += n
+	}
+	return b.String(), shown, nil
+}
+
+// netmailFor reports whether m is netmail addressed to one of addrs.
+func netmailFor(m ftn.Message, addrs []ftn.Addr) bool {
+	if m.Area != "" {
+		return false
+	}
+	for _, a := range addrs {
+		if m.Dest.Same(a) {
+			return true
 		}
 	}
-	return b.String(), nil
+	return false
+}
+
+// parseAddrList reads "2:5030/1651,2:410/51" into addresses.
+func parseAddrList(s string) ([]ftn.Addr, error) {
+	var out []ftn.Addr
+	for _, f := range strings.Split(s, ",") {
+		if f = strings.TrimSpace(f); f == "" {
+			continue
+		}
+		a, err := ftn.ParseAddr(f)
+		if err != nil {
+			return nil, err
+		}
+		out = append(out, a)
+	}
+	if len(out) == 0 {
+		return nil, errors.New("no addresses")
+	}
+	return out, nil
 }
 
 func toss(args []string) error {
@@ -187,19 +237,36 @@ func notify(args []string) error {
 	to := fs.String("to", "", "address to email")
 	from := fs.String("from", "bbs@boar.rh1.tech", "sender address")
 	relay := fs.String("smtp", "127.0.0.1:25", "SMTP relay on this machine")
+	forList := fs.String("for", "", `report only netmail to these FTN addresses, e.g. "2:5030/1651,2:410/51"`)
 	fs.Parse(args)
 	if *to == "" || fs.NArg() != 1 {
-		return errors.New("usage: boar-ftn notify -to ADDRESS FILE")
+		return errors.New("usage: boar-ftn notify -to ADDRESS [-for FTN-ADDRESSES] FILE")
+	}
+	var only []ftn.Addr
+	if *forList != "" {
+		var err error
+		if only, err = parseAddrList(*forList); err != nil {
+			return fmt.Errorf("-for: %w", err)
+		}
 	}
 	name := fs.Arg(0)
-	text, err := describe(name)
+	text, shown, err := describe(name, only)
+	if err == nil && only != nil && shown == 0 {
+		return nil // nothing here for this node
+	}
 	subject := "FidoNet mail arrived: " + filepath.Base(name)
+	if only != nil {
+		subject = "FidoNet netmail arrived: " + filepath.Base(name)
+	}
 	if err != nil {
 		text = fmt.Sprintf("A file arrived that could not be read as FidoNet mail:\n%s\n\n%v\n", name, err)
 		subject = "FidoNet file arrived (unreadable): " + filepath.Base(name)
 	}
 	if first := firstSubject(text); first != "" {
 		subject = "FidoNet: " + first
+		if only != nil {
+			subject = "FidoNet netmail for " + only[0].String() + ": " + first
+		}
 	}
 	msg := "From: Boar BBS FidoNet <" + *from + ">\r\n" +
 		"To: " + *to + "\r\n" +

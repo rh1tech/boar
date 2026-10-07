@@ -2,6 +2,7 @@
 # Build Boar BBS for Linux and install or update it on a server over SSH.
 #
 #   deploy/install.sh [user@host [port]]   # default: spb1, xtreme@spb1.re-hash.org port 51622
+#   BOAR_RELAY=xtreme@rbx1.re-hash.org      # also refresh boar-ftn there ("" to skip)
 #
 # Boar runs on spb1 since 2026-10-07 (rbx1 is only the FidoNet relay). The
 # remote user needs sudo. Data in /var/lib/boar is never touched. Without a
@@ -56,3 +57,12 @@ systemctl restart boar
 sleep 1
 systemctl --no-pager --lines=5 status boar
 REMOTE
+
+# rbx1, the FidoNet relay, runs boar-ftn too (netmail notices, in
+# ftn-forward-spb1.sh): keep it the same version as the node's.
+relay="${BOAR_RELAY-xtreme@rbx1.re-hash.org}"
+if [ -n "$relay" ]; then
+	echo "refreshing boar-ftn on $relay..."
+	scp -q "$build/boar-ftn" "$relay:/tmp/boar-ftn.new"
+	ssh "$relay" 'sudo install -d -m 0755 /opt/boar/bin && sudo install -m 0755 /tmp/boar-ftn.new /opt/boar/bin/boar-ftn && rm -f /tmp/boar-ftn.new'
+fi

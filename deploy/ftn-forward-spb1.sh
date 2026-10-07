@@ -1,12 +1,17 @@
 #!/bin/sh
-# rbx1 is a relay since 2026-10-07: Boar and its tosser live on spb1
-# (2:5030/1651). Hand every file received here to spb1's filebox and ask
-# binkd to call it. Files that came *from* spb1 (its ibox) are left alone.
+# Run by binkd on rbx1 for every received file. rbx1 is a node of its own for
+# netmail: it emails the sysop about netmail addressed to it (2:410/51, and
+# its point address), from anyone including spb1. For everything else it is a
+# relay since 2026-10-07: Boar and its tosser live on spb1 (2:5030/1651), so
+# every file is handed to spb1's filebox and binkd asked to call it. Files
+# that came *from* spb1 (its ibox) are not sent back.
 #
 # Usage (from binkd exec): ftn-forward-spb1.sh /var/spool/ftn/in/FILE
 set -eu
 
 src=${1:?usage: ftn-forward-spb1.sh FILE}
+# Best effort: a failed notice must never stop the mail being relayed.
+/opt/boar/bin/boar-ftn notify -to xtreme@outlook.com -for 2:410/51,2:5030/1651.1 "$src" || true
 case "$src" in /var/spool/ftn/in.spb1/*) exit 0 ;; esac
 
 obox=/var/spool/ftn/obox.spb1

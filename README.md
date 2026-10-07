@@ -294,13 +294,15 @@ Russian hubs  ↔  spb1 2:5030/1651  ↔  rbx1 2:5030/1651.1 + 2:410/51  ↔  Pe
 ```
 
 - **spb1** (`deploy/binkd-spb1.cfg`, `deploy/install-spb1-ftn.sh`): the node.
-  Boar tosses its inbound every half minute; binkd emails the sysop what
-  arrived. It polls rbx1 every 10 minutes (`binkd-poll-rbx1.timer`). Mail
+  Boar tosses its inbound every half minute; binkd emails the sysop each
+  netmail for 2:5030/1651. It polls rbx1 every 10 minutes (`binkd-poll-rbx1.timer`). Mail
   leaves through a loopback postfix relaying to rbx1:2525 over TLS, pinned
   to rbx1's certificate.
 - **rbx1** (`deploy/binkd.cfg`, `deploy/install-rbx1-relay.sh`): the relay.
-  It keeps the Petros link, copies everything it receives into spb1's
-  filebox (`ftn-forward-spb1.sh`) and calls spb1 straight away.
+  It keeps the Petros link and is a node of its own for netmail: it emails
+  the sysop each netmail for 2:410/51, from anyone including spb1. Everything
+  it receives also goes into spb1's filebox (`ftn-forward-spb1.sh`), and it
+  calls spb1 straight away, so echomail reaches the BBS.
 - **Passwords:** session passwords live only in `/etc/binkd/nodes.inc` on
   each host (template: `deploy/nodes.spb1.inc.example`).
 - **Spool:** `/var/spool/ftn` on each host, `ftn` group; `boar` is a member
@@ -329,8 +331,10 @@ boar-ftn notify -to you@example.com FILE        # email what arrived
 boar-ftn toss -data /var/lib/boar/boar.db       # import echoes into the BBS
 ```
 
-binkd on spb1 runs `notify` for every received packet/bundle (`*F` in
-`deploy/binkd-spb1.cfg`). The BBS imports echomail into SQLite and moves the file
+binkd runs `notify -for <own addresses>` for every received packet or bundle
+(`*F` in `deploy/binkd-spb1.cfg`, and `ftn-forward-spb1.sh` on rbx1): each
+node emails about its own netmail only, so a bundle relayed between them is
+announced once, and echomail is not announced at all. The BBS imports echomail into SQLite and moves the file
 to `/var/spool/ftn/tossed` (or `bad`). Netmail import is still later.
 
 Run outbound tools as `ftn` or `boar`. The BBS needs the `ftn` group and
