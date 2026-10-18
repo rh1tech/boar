@@ -71,10 +71,14 @@ func (s *session) echoesMenu() error {
 
 func (s *session) echoAreaView(a store.EchoArea) error {
 	for {
-		s.setActivity("Reading " + a.Tag)
-		msgs, err := s.srv.store.EchoMessages(a.ID)
+		msgs, err := s.srv.store.EchoMessagesFor(s.user.ID, a.ID)
 		if err != nil {
 			return err
+		}
+		if store.EchoSysopOnly(a.Tag) {
+			s.setActivity("Reading echomail")
+		} else {
+			s.setActivity("Reading " + a.Tag)
 		}
 		lastRead, err := s.srv.store.EchoLastRead(s.user.ID, a.ID)
 		if err != nil {
@@ -143,7 +147,7 @@ func (s *session) echoNewScan(areas []store.EchoAreaSummary) error {
 		if a.New == 0 {
 			continue
 		}
-		msgs, err := s.srv.store.EchoMessages(a.ID)
+		msgs, err := s.srv.store.EchoMessagesFor(s.user.ID, a.ID)
 		if err != nil {
 			return err
 		}

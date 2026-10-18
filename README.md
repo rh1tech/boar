@@ -76,6 +76,16 @@ SPB1 terminal route and supply the visitor's IP. Keep that allowlist in sync
 if the home's external IP changes. Do not expose the loopback listener directly.
 The sysop interface remains separate.
 
+### Echo visibility
+
+Sysops can read every received discussion echo. Ordinary callers cannot list,
+read or count unread messages in administrative/private echoes: tags containing
+SYSOP(S), COORD(INATOR), REGCON, PVT, PRIVATE, BONE, HUB(S), NC, NEC or FEC as
+dot/underscore/hyphen-separated components, plus R50.CRISIS and R50.ELECTIONS.
+This policy also applies to existing echoes and new areas created by the tosser.
+It restricts BBS visibility, not the upstream subscription: the hub must still
+authorize the node to receive each area. File echoes are a separate section.
+
 ### Mail
 
 The mailbox has an inbox with unread markers and a mode that walks through

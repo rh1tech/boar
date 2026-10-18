@@ -3,11 +3,77 @@
 package store
 
 import (
+	"errors"
 	"testing"
 	"time"
 
 	"boar/internal/ftn"
 )
+
+func TestEchoSysopOnly(t *testing.T) {
+	for _, tag := range []string{" r50.Sysop.club ", "fido_sysop", "test-private", "r50.crisis", "r50.elections", "regcon.eur"} {
+		if !EchoSysopOnly(tag) {
+			t.Errorf("expected restricted: %q", tag)
+		}
+	}
+	for _, tag := range []string{"FTSC_PUBLIC", "S0T.STAT", "SPB.POINT", "HUBBLE", "LINUX", "MAKENL_NG"} {
+		if EchoSysopOnly(tag) {
+			t.Errorf("expected public: %q", tag)
+		}
+	}
+}
+
+func TestEchoVisibility(t *testing.T) {
+	s, _ := openTemp(t)
+	sysop := mustUser(t, s, "Alice")
+	caller := mustUser(t, s, "Caller")
+	restricted := []string{
+		"R50.BONE", "R50.COORD", "R50.CRISIS", "R50.ELECTIONS", "R50.HUBS",
+		"R50.SYSOP", "R50.SYSOP.CLUB", "R50.SYSOP.INFO", "R50.SYSOP.TALK",
+		"SPB.BONE", "SPB.FEC", "SPB.HUB", "SPB.HUBS", "SPB.HUBS.PVT",
+		"SPB.NC", "SPB.NEC", "SPB.SYSOP", "SPB.SYSOP.INFO", "SPB.SYSOP.TALK",
+		"ENET.SYSOP", "FIDO_SYSOP", "REGCON.EUR", "TEST.PRIVATE",
+	}
+	public := []string{"SPB.09", "SPB.ANIME", "SPB.HARDW", "SPB.POINT", "SPB.TOURISM", "S0T.INFO", "S0T.STAT", "S0T.TALK", "FTSC_PUBLIC", "LINUX"}
+	for _, tag := range append(append([]string{}, restricted...), public...) {
+		if _, err := s.ImportEcho(ftn.Message{Area: tag, MsgID: tag, Body: "Test"}); err != nil {
+			t.Fatal(err)
+		}
+	}
+	all, err := s.EchoAreas(sysop.ID)
+	if err != nil || len(all) != len(restricted)+len(public) {
+		t.Fatalf("sysop areas: %d, %v", len(all), err)
+	}
+	visible, err := s.EchoAreas(caller.ID)
+	if err != nil || len(visible) != len(public) {
+		t.Fatalf("caller areas: %d, %v", len(visible), err)
+	}
+	for _, a := range all {
+		wantRestricted := true
+		for _, tag := range public {
+			if tag == a.Tag {
+				wantRestricted = false
+			}
+		}
+		msgs, err := s.EchoMessagesFor(caller.ID, a.ID)
+		if wantRestricted {
+			if !errors.Is(err, ErrForbidden) || len(msgs) != 0 {
+				t.Fatalf("restricted %s leaked: %v, %v", a.Tag, msgs, err)
+			}
+		} else if err != nil || len(msgs) != 1 {
+			t.Fatalf("public %s unavailable: %v, %v", a.Tag, msgs, err)
+		}
+		if msgs, err := s.EchoMessagesFor(sysop.ID, a.ID); err != nil || len(msgs) != 1 {
+			t.Fatalf("sysop cannot read %s: %v", a.Tag, err)
+		}
+	}
+	if n, err := s.EchoUnreadCount(caller.ID); err != nil || n != len(public) {
+		t.Fatalf("caller unread includes hidden echoes: %d, %v", n, err)
+	}
+	if n, err := s.EchoUnreadCount(sysop.ID); err != nil || n != len(all) {
+		t.Fatalf("sysop unread missing echoes: %d, %v", n, err)
+	}
+}
 
 func TestImportEchoAndRead(t *testing.T) {
 	s, _ := openTemp(t)
