@@ -7,20 +7,21 @@
 <meta name="description" content="Boar BBS is an old-style bulletin board: private mail, message boards, chat, a door game and ANSI art. Call it with ssh bbs@boar-bbs.rh1.tech or telnet boar-bbs.rh1.tech.">
 <link rel="canonical" href="https://boar.rh1.tech/">
 <link rel="alternate" hreflang="en" href="https://boar.rh1.tech/">
-<link rel="alternate" hreflang="ru" href="https://boar.rh1.tech/ru/">
+<link rel="alternate" hreflang="ru" href="https://boar.rh1.ru/">
 <link rel="alternate" hreflang="x-default" href="https://boar.rh1.tech/">
 <meta name="theme-color" content="#0000aa">
 <meta name="color-scheme" content="dark">
 <link rel="icon" href="/assets/favicon.png" type="image/png">
-<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/site.css?v=20261019-terminal">
+<link rel="stylesheet" href="/assets/vendor/xterm/xterm.css">
 </head>
 <body>
 <header class="bar">
   <span class="bbs">Boar BBS</span>
   <span class="host">boar.rh1.tech</span>
   <nav aria-label="Language">
-    <a class="item" href="/" hreflang="en" lang="en" aria-current="page"><span class="key">E</span>nglish</a>
-    <a class="item" href="/ru/" hreflang="ru" lang="ru"><span class="key">Р</span>усский</a>
+    <a class="item" href="https://boar.rh1.tech/" hreflang="en" lang="en" aria-current="page"><span class="key">E</span>nglish</a>
+    <a class="item" href="https://boar.rh1.ru/" hreflang="ru" lang="ru"><span class="key">Р</span>усский</a>
   </nav>
 </header>
 
@@ -47,7 +48,7 @@
     <h2 id="call">How to call</h2>
     <div class="way">
       <h3>SSH <span class="tag">encrypted</span></h3>
-      <p class="cmd">ssh bbs@boar-bbs.rh1.tech</p>
+      <p class="cmd">ssh -p 2222 bbs@boar-bbs.rh1.tech</p>
       <p>Any user name works: you sign in to the BBS itself after connecting. Once you have an account you can add your SSH key under Settings, and then this command logs you straight in.</p>
     </div>
     <div class="way">
@@ -57,9 +58,25 @@
     </div>
     <div class="way">
       <h3>A BBS client</h3>
-      <p>SyncTERM, NetRunner or any other ANSI-BBS client works. Add <code>boar-bbs.rh1.tech</code>, telnet on port 23 or SSH on port 22, and pick option 2 (CP437) when the BBS asks about your terminal.</p>
+      <p>SyncTERM, NetRunner or any other ANSI-BBS client works. Add <code>boar-bbs.rh1.tech</code>, telnet on port 23 or SSH on port 2222, and pick option 2 (CP437) when the BBS asks about your terminal.</p>
     </div>
     <p class="dim">The first time SSH asks about the server's key, check that it's <span class="fp">SHA256:xMvzbhi5k5OnnNhmTObOjBzk6nGVrIRYRJGDP4aPNuI</span> (ED25519)</p>
+  </section>
+
+  <section class="box" aria-labelledby="browser">
+    <h2 id="browser">Call from your browser</h2>
+    <p>The same Boar BBS, with your existing handle and password, in an 80×25 UTF-8 terminal. The connection is encrypted all the way to the BBS in St. Petersburg. On a narrow screen, scroll the terminal sideways. For ZMODEM transfers, use a dedicated BBS client.</p>
+    <div class="terminal-controls">
+      <button id="terminal-connect" type="button">Connect</button>
+      <button id="terminal-disconnect" type="button" disabled>Disconnect</button>
+      <span id="terminal-status" role="status" data-ready="Not connected"
+        data-connecting="Connecting…" data-connected="Connected — click the terminal to type."
+        data-closed="Disconnected. Connect again to make another call." data-error="Connection failed. Try again, or use SSH.">Not connected</span>
+    </div>
+    <div id="terminal-panel" hidden>
+      <div class="terminal-scroll"><div id="terminal" aria-label="Interactive Boar BBS terminal"></div></div>
+    </div>
+    <noscript><p>The browser terminal needs JavaScript. You can still connect using SSH or telnet above.</p></noscript>
   </section>
 
   <div class="split">
@@ -75,19 +92,27 @@
 
   <section class="box" aria-labelledby="fido">
     <h2 id="fido">FidoNet</h2>
-    <p>Boar has applied to join FidoNet, the network BBSes have used since the 1980s to exchange mail. Once it's listed, you'll be able to send netmail and read echomail from the BBS.</p>
+    <p>Boar participates in FidoNet, the store-and-forward network BBSes have used since the 1980s. Our setup connects two locations: one shared BBS in St. Petersburg and a mail relay in Greece.</p>
+    <dl class="inside">
+      <dt>2:5030/1651</dt><dd>St. Petersburg, Russia — the main node and Boar BBS at boar-bbs.rh1.tech. Read echomail, use netmail and browse file echoes here.</dd>
+      <dt>2:410/51</dt><dd>Greece — our home-server mail relay at boar.rh1.tech. It exchanges mail with the Greek uplink and forwards it to the St. Petersburg BBS.</dd>
+    </dl>
+    <p>International echoes are already available, and the Russian uplink is connected. Administrative and private conferences are visible only to sysops. File echoes (nodelists and network files) are separate from discussion echoes. Mail travels on scheduled connections, so delivery is not instant.</p>
   </section>
 
   <section class="box" aria-labelledby="rules">
     <h2 id="rules">House rules</h2>
     <p>Be decent to other callers. No spam, no advertising, and no attempts to break the system. A sysop can lock accounts that don't play along.</p>
-    <p>The BBS keeps your handle, a hash of your password, your messages and a log of logins. This page sets no cookies and loads nothing from other sites.</p>
+    <p>The BBS keeps your handle, a hash of your password, your messages and a log of logins. This page sets no cookies and loads no third-party resources. The browser terminal connects only when you choose Connect and uses the same BBS login and logging as SSH.</p>
   </section>
 </main>
 
 <footer>
   <p>Boar BBS is free software. Questions? Call the BBS and mail a sysop.</p>
-  <p>© 2026 Mikhail Matveev · <a href="https://github.com/rh1tech/boar">github.com/rh1tech/boar</a> · GPL-3.0</p>
+  <p class="credit"><a class="footer-rh1" href="https://rh1.tech" aria-label="rh1.tech"><span class="rh1-mark" data-rh1-mark aria-hidden="true"></span>rh1.tech</a><span>© 2026 Mikhail Matveev</span><a href="https://github.com/rh1tech/boar">github.com/rh1tech/boar</a><span>GPL-3.0</span></p>
 </footer>
+<script src="/assets/js/rh1-origami.js" defer></script>
+<script src="/assets/vendor/xterm/xterm.js" defer></script>
+<script src="/assets/js/terminal.js" defer></script>
 </body>
 </html>

@@ -64,8 +64,32 @@ func scanEchoMessage(row scanner) (EchoMessage, error) {
 	return m, err
 }
 
-// EchoAreas lists every area with post and unread counts for userID.
+// EchoSysopOnly identifies administrative and explicitly private conferences.
+// Apply this on read, including existing areas and areas first seen by the tosser.
+func EchoSysopOnly(tag string) bool {
+	tag = strings.ToUpper(strings.TrimSpace(tag))
+	switch tag {
+	case "R50.CRISIS", "R50.ELECTIONS":
+		return true
+	}
+	for _, part := range strings.FieldsFunc(tag, func(r rune) bool {
+		return r == '.' || r == '_' || r == '-'
+	}) {
+		switch part {
+		case "SYSOP", "SYSOPS", "COORD", "COORDINATOR", "REGCON",
+			"PVT", "PRIVATE", "BONE", "HUB", "HUBS", "NC", "NEC", "FEC":
+			return true
+		}
+	}
+	return false
+}
+
+// EchoAreas lists visible areas with post and unread counts for userID.
 func (s *Store) EchoAreas(userID int64) ([]EchoAreaSummary, error) {
+	sysop, err := exists(s.db, "SELECT 1 FROM users WHERE id = ? AND is_sysop = 1", userID)
+	if err != nil {
+		return nil, err
+	}
 	rows, err := s.db.Query(`
 		SELECT a.id, a.tag, a.description, a.created_at,
 		       COUNT(m.id),
@@ -79,13 +103,23 @@ func (s *Store) EchoAreas(userID int64) ([]EchoAreaSummary, error) {
 	if err != nil {
 		return nil, err
 	}
-	return collect(rows, func(row scanner) (EchoAreaSummary, error) {
+	areas, err := collect(rows, func(row scanner) (EchoAreaSummary, error) {
 		var es EchoAreaSummary
 		var created, last int64
 		err := row.Scan(&es.ID, &es.Tag, &es.Description, &created, &es.Posts, &es.New, &last)
 		es.CreatedAt, es.LastPost = fromNano(created), fromNano(last)
 		return es, err
 	})
+	if err != nil {
+		return nil, err
+	}
+	visible := areas[:0]
+	for _, a := range areas {
+		if sysop || !EchoSysopOnly(a.Tag) {
+			visible = append(visible, a)
+		}
+	}
+	return visible, nil
 }
 
 // EchoAreaByID returns one area.
@@ -106,6 +140,24 @@ func (s *Store) EchoMessages(areaID int64) ([]EchoMessage, error) {
 		return nil, err
 	}
 	return collect(rows, scanEchoMessage)
+}
+
+// EchoMessagesFor enforces visibility for direct reads as well as menu scans.
+func (s *Store) EchoMessagesFor(userID, areaID int64) ([]EchoMessage, error) {
+	a, err := s.EchoAreaByID(areaID)
+	if err != nil {
+		return nil, err
+	}
+	if EchoSysopOnly(a.Tag) {
+		u, err := s.UserByID(userID)
+		if err != nil {
+			return nil, err
+		}
+		if !u.Sysop {
+			return nil, ErrForbidden
+		}
+	}
+	return s.EchoMessages(areaID)
 }
 
 // EchoLastRead returns the newest message ID userID has read in an area.

@@ -1,18 +1,19 @@
 #!/bin/sh
-# Publish site/ to boar.rh1.tech, which stays on rbx1 (it is 2:410/51's INA
-# in the nodelist). The BBS itself is boar-bbs.rh1.tech on spb1. No build step.
+# Publish site/ to boar.rh1.tech on the home server (2:410/51).
+# The BBS itself is boar-bbs.rh1.tech on spb1. No build step.
 #
-#   deploy/site.sh [ssh-target]    # default: xtreme@rbx1.re-hash.org
-#   BOAR_SSH_PORT                  # default 22
+#   deploy/site.sh [ssh-target]    # default: xtreme@192.168.68.245
+#   deploy/site.sh spb1           # also publish the Russian site
+#   BOAR_SSH_PORT                  # optional override; otherwise SSH config
 #   BOAR_SSH_IDENTITY              # optional path to ssh key
 #
 # A tar stream rather than rsync: macOS's rsync lacks the options this needs.
 # The new copy is unpacked beside the live one and swapped in, so a reader
 # never sees a half-written site. Remote steps use sudo (xtreme on rbx1).
 set -eu
-host="${1:-xtreme@rbx1.re-hash.org}"
-port="${BOAR_SSH_PORT:-22}"
-ssh_cmd="ssh -p $port${BOAR_SSH_IDENTITY:+ -i $BOAR_SSH_IDENTITY}"
+host="${1:-xtreme@192.168.68.245}"
+port="${BOAR_SSH_PORT:-}"
+ssh_cmd="ssh${port:+ -p $port}${BOAR_SSH_IDENTITY:+ -i $BOAR_SSH_IDENTITY}"
 cd "$(dirname "$0")/.."
 
 $ssh_cmd "$host" 'sudo sh -eu -c "

@@ -55,9 +55,36 @@ The module targets Go 1.27. With the default `GOTOOLCHAIN=auto`, an older
 | `-max-signups` | `20`                     | New accounts per day, across the whole BBS |
 | `-idle`     | `15m`                       | Hang up on callers idle this long          |
 | `-web`      |                             | Sysop web interface address, e.g. `127.0.0.1:8023` (off when empty) |
+| `-terminal` |                             | Browser terminal HTTP listener; loopback only, e.g. `127.0.0.1:8025` |
+| `-terminal-origin` | `https://boar.rh1.tech` | Comma-separated exact HTTPS origins allowed to open browser sessions |
 | `-v`        | off                         | Debug logging                              |
 
 ## What callers get
+
+### Browser terminal
+
+The public site includes a self-hosted xterm.js 6.0.0 terminal (MIT license
+in `site/assets/vendor/xterm/LICENSE`). It opens an 80×25 UTF-8 session only
+after Connect is clicked, using the normal BBS login, node limits, idle
+timeout, approval rules and per-IP throttles. It does not expose a shell.
+ZMODEM requires a dedicated BBS client.
+
+Run Boar with `-terminal 127.0.0.1:8025` behind the TLS proxy in
+`deploy/nginx-boar-bbs.conf`. The website proxy in `deploy/nginx-boar-site.conf`
+verifies the BBS server's TLS certificate. Only the home server may reach the
+SPB1 terminal route and supply the visitor's IP. Keep that allowlist in sync
+if the home's external IP changes. Do not expose the loopback listener directly.
+The sysop interface remains separate.
+
+### Echo visibility
+
+Sysops can read every received discussion echo. Ordinary callers cannot list,
+read or count unread messages in administrative/private echoes: tags containing
+SYSOP(S), COORD(INATOR), REGCON, PVT, PRIVATE, BONE, HUB(S), NC, NEC or FEC as
+dot/underscore/hyphen-separated components, plus R50.CRISIS and R50.ELECTIONS.
+This policy also applies to existing echoes and new areas created by the tosser.
+It restricts BBS visibility, not the upstream subscription: the hub must still
+authorize the node to receive each area. File echoes are a separate section.
 
 ### Mail
 
@@ -234,12 +261,22 @@ straight away.
 
 ## Public page
 
-`site/` is boar.rh1.tech: how to call the BBS and what it offers, in English
-(`/`) and Russian (`/ru/`), drawn like the BBS. It is static HTML with no
-scripts. The welcome screen at the top was rendered from a real CP437
+`site/` describes how to call the BBS and what it offers, drawn like the BBS.
+English is at `https://boar.rh1.tech/` (home server); Russian is at
+`https://boar.rh1.ru/` (spb1). Both serve the same build; the Russian vhost
+selects `ru/index.html` at its root. Existing `/ru/` URLs remain available.
+Language links and canonical/alternate URLs use the two language domains.
+The pages are static HTML with self-hosted branding and terminal scripts.
+The welcome screen at the top was rendered from a real CP437
 telnet session by the sysop interface's ANSI renderer. The live lines
 (node, online count, date) were cut, so the snapshot never goes stale.
-Publish it with `deploy/site.sh`; the nginx site is `deploy/nginx-boar-site.conf`.
+Rebuild with `python3 tools/site_build.py`, then publish to both hosts:
+`deploy/site.sh` for the home server (set `BOAR_SSH_IDENTITY` if needed) and
+`deploy/site.sh spb1` using the SPB1 SSH alias. Nginx configurations are
+`deploy/nginx-boar-site.conf` and `deploy/nginx-boar-ru.conf`. The latter
+proxies browser terminals directly to the loopback listener on SPB1; allow
+both language origins with
+`-terminal-origin https://boar.rh1.tech,https://boar.rh1.ru`.
 
 ## Sysop web interface
 

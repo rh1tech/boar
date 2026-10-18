@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds site/ (boar.rh1.tech) from the texts below.
+"""Builds site/ (English boar.rh1.tech and Russian boar.rh1.ru).
 
     python3 tools/site_build.py && deploy/site.sh
 
@@ -17,6 +17,7 @@ FP = "SHA256:xMvzbhi5k5OnnNhmTObOjBzk6nGVrIRYRJGDP4aPNuI"
 
 
 def page(lang, t, h1=None):
+    host = "boar.rh1.tech" if lang == "en" else "boar.rh1.ru"
     return f'''<!DOCTYPE html>
 <html lang="{lang}">
 <head>
@@ -24,22 +25,23 @@ def page(lang, t, h1=None):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{t["title"]}</title>
 <meta name="description" content="{t["desc"]}">
-<link rel="canonical" href="https://boar.rh1.tech{"/" if lang == "en" else "/ru/"}">
+<link rel="canonical" href="https://{host}/">
 <link rel="alternate" hreflang="en" href="https://boar.rh1.tech/">
-<link rel="alternate" hreflang="ru" href="https://boar.rh1.tech/ru/">
+<link rel="alternate" hreflang="ru" href="https://boar.rh1.ru/">
 <link rel="alternate" hreflang="x-default" href="https://boar.rh1.tech/">
 <meta name="theme-color" content="#0000aa">
 <meta name="color-scheme" content="dark">
 <link rel="icon" href="/assets/favicon.png" type="image/png">
-<link rel="stylesheet" href="/assets/site.css">
+<link rel="stylesheet" href="/assets/site.css?v=20261019-terminal">
+<link rel="stylesheet" href="/assets/vendor/xterm/xterm.css">
 </head>
 <body>
 <header class="bar">
   <span class="bbs">Boar BBS</span>
-  <span class="host">boar.rh1.tech</span>
+  <span class="host">{host}</span>
   <nav aria-label="{t["langnav"]}">
-    <a class="item" href="/" hreflang="en" lang="en"{' aria-current="page"' if lang == "en" else ""}><span class="key">E</span>nglish</a>
-    <a class="item" href="/ru/" hreflang="ru" lang="ru"{' aria-current="page"' if lang == "ru" else ""}><span class="key">Р</span>усский</a>
+    <a class="item" href="https://boar.rh1.tech/" hreflang="en" lang="en"{' aria-current="page"' if lang == "en" else ""}><span class="key">E</span>nglish</a>
+    <a class="item" href="https://boar.rh1.ru/" hreflang="ru" lang="ru"{' aria-current="page"' if lang == "ru" else ""}><span class="key">Р</span>усский</a>
   </nav>
 </header>
 
@@ -55,7 +57,7 @@ def page(lang, t, h1=None):
     <h2 id="call">{t["call"]}</h2>
     <div class="way">
       <h3>SSH <span class="tag">{t["recommended"]}</span></h3>
-      <p class="cmd">ssh bbs@boar-bbs.rh1.tech</p>
+      <p class="cmd">ssh -p 2222 bbs@boar-bbs.rh1.tech</p>
       <p>{t["ssh"]}</p>
     </div>
     <div class="way">
@@ -68,6 +70,22 @@ def page(lang, t, h1=None):
       <p>{t["clienttext"]}</p>
     </div>
     <p class="dim">{t["fp"]} <span class="fp">{FP}</span> (ED25519)</p>
+  </section>
+
+  <section class="box" aria-labelledby="browser">
+    <h2 id="browser">{t["browser"]}</h2>
+    <p>{t["browsertext"]}</p>
+    <div class="terminal-controls">
+      <button id="terminal-connect" type="button">{t["connect"]}</button>
+      <button id="terminal-disconnect" type="button" disabled>{t["disconnect"]}</button>
+      <span id="terminal-status" role="status" data-ready="{t["ready"]}"
+        data-connecting="{t["connecting"]}" data-connected="{t["connected"]}"
+        data-closed="{t["closed"]}" data-error="{t["error"]}">{t["ready"]}</span>
+    </div>
+    <div id="terminal-panel" hidden>
+      <div class="terminal-scroll"><div id="terminal" aria-label="{t["terminalalt"]}"></div></div>
+    </div>
+    <noscript><p>{t["noscript"]}</p></noscript>
   </section>
 
   <div class="split">
@@ -84,6 +102,11 @@ def page(lang, t, h1=None):
   <section class="box" aria-labelledby="fido">
     <h2 id="fido">FidoNet</h2>
     <p>{t["fido"]}</p>
+    <dl class="inside">
+      <dt>2:5030/1651</dt><dd>{t["fidospb"]}</dd>
+      <dt>2:410/51</dt><dd>{t["fidogreece"]}</dd>
+    </dl>
+    <p>{t["fidostatus"]}</p>
   </section>
 
   <section class="box" aria-labelledby="rules">
@@ -95,8 +118,11 @@ def page(lang, t, h1=None):
 
 <footer>
   <p>{t["foot"]}</p>
-  <p>© 2026 Mikhail Matveev · <a href="https://github.com/rh1tech/boar">github.com/rh1tech/boar</a> · GPL-3.0</p>
+  <p class="credit"><a class="footer-rh1" href="https://rh1.tech" aria-label="rh1.tech"><span class="rh1-mark" data-rh1-mark aria-hidden="true"></span>rh1.tech</a><span>© 2026 Mikhail Matveev</span><a href="https://github.com/rh1tech/boar">github.com/rh1tech/boar</a><span>GPL-3.0</span></p>
 </footer>
+<script src="/assets/js/rh1-origami.js" defer></script>
+<script src="/assets/vendor/xterm/xterm.js" defer></script>
+<script src="/assets/js/terminal.js" defer></script>
 </body>
 </html>
 '''
@@ -113,7 +139,15 @@ EN = dict(
     ssh="Any user name works: you sign in to the BBS itself after connecting. Once you have an account you can add your SSH key under Settings, and then this command logs you straight in.",
     telnet="Port 23. Telnet sends everything unencrypted, your password included, so use SSH when you can.",
     client="A BBS client",
-    clienttext="SyncTERM, NetRunner or any other ANSI-BBS client works. Add <code>boar-bbs.rh1.tech</code>, telnet on port 23 or SSH on port 22, and pick option 2 (CP437) when the BBS asks about your terminal.",
+    clienttext="SyncTERM, NetRunner or any other ANSI-BBS client works. Add <code>boar-bbs.rh1.tech</code>, telnet on port 23 or SSH on port 2222, and pick option 2 (CP437) when the BBS asks about your terminal.",
+    browser="Call from your browser",
+    browsertext="The same Boar BBS, with your existing handle and password, in an 80×25 UTF-8 terminal. The connection is encrypted all the way to the BBS in St. Petersburg. On a narrow screen, scroll the terminal sideways. For ZMODEM transfers, use a dedicated BBS client.",
+    connect="Connect", disconnect="Disconnect", ready="Not connected",
+    connecting="Connecting…", connected="Connected — click the terminal to type.",
+    closed="Disconnected. Connect again to make another call.",
+    error="Connection failed. Try again, or use SSH.",
+    terminalalt="Interactive Boar BBS terminal",
+    noscript="The browser terminal needs JavaScript. You can still connect using SSH or telnet above.",
     fp="The first time SSH asks about the server's key, check that it's",
     first="Your first call",
     steps=[
@@ -131,10 +165,13 @@ EN = dict(
         ("The wall", "One-liners shown at login, and news from the sysop."),
         ("Email", "If you want it, a notice or a copy of new mail, sent only to an address you've verified."),
     ],
-    fido="Boar has applied to join FidoNet, the network BBSes have used since the 1980s to exchange mail. Once it's listed, you'll be able to send netmail and read echomail from the BBS.",
+    fido="Boar participates in FidoNet, the store-and-forward network BBSes have used since the 1980s. Our setup connects two locations: one shared BBS in St. Petersburg and a mail relay in Greece.",
+    fidospb="St. Petersburg, Russia — the main node and Boar BBS at boar-bbs.rh1.tech. Read echomail, use netmail and browse file echoes here.",
+    fidogreece="Greece — our home-server mail relay at boar.rh1.tech. It exchanges mail with the Greek uplink and forwards it to the St. Petersburg BBS.",
+    fidostatus="International echoes are already available, and the Russian uplink is connected. Administrative and private conferences are visible only to sysops. File echoes (nodelists and network files) are separate from discussion echoes. Mail travels on scheduled connections, so delivery is not instant.",
     rules="House rules",
     rulestext="Be decent to other callers. No spam, no advertising, and no attempts to break the system. A sysop can lock accounts that don't play along.",
-    privacy="The BBS keeps your handle, a hash of your password, your messages and a log of logins. This page sets no cookies and loads nothing from other sites.",
+    privacy="The BBS keeps your handle, a hash of your password, your messages and a log of logins. This page sets no cookies and loads no third-party resources. The browser terminal connects only when you choose Connect and uses the same BBS login and logging as SSH.",
     foot="Boar BBS is free software. Questions? Call the BBS and mail a sysop.",
 )
 
@@ -149,7 +186,15 @@ RU = dict(
     ssh="Имя пользователя подойдёт любое: логин и пароль BBS спросит уже после подключения. После регистрации можно добавить в настройках свой SSH-ключ — тогда вход будет сразу, без пароля.",
     telnet="Порт 23. Telnet передаёт данные без шифрования, в том числе пароль, поэтому по возможности используйте SSH.",
     client="BBS-клиент",
-    clienttext="Подойдёт SyncTERM, NetRunner или любой другой клиент для ANSI-BBS. Укажите адрес <code>boar-bbs.rh1.tech</code> (telnet — порт 23, SSH — порт 22), а когда BBS спросит про терминал, выберите 2 (CP437).",
+    clienttext="Подойдёт SyncTERM, NetRunner или любой другой клиент для ANSI-BBS. Укажите адрес <code>boar-bbs.rh1.tech</code> (telnet — порт 23, SSH — порт 2222), а когда BBS спросит про терминал, выберите 2 (CP437).",
+    browser="Вход из браузера",
+    browsertext="Та же Boar BBS, ваш обычный ник и пароль, терминал UTF-8 размером 80×25. Соединение зашифровано до самой BBS в Санкт-Петербурге. На узком экране терминал можно прокручивать по горизонтали. Для передачи файлов по ZMODEM используйте отдельный BBS-клиент.",
+    connect="Подключиться", disconnect="Отключиться", ready="Нет соединения",
+    connecting="Подключение…", connected="Соединение установлено — нажмите на терминал для ввода.",
+    closed="Соединение закрыто. Для нового звонка подключитесь ещё раз.",
+    error="Не удалось подключиться. Попробуйте ещё раз или используйте SSH.",
+    terminalalt="Интерактивный терминал Boar BBS",
+    noscript="Для терминала в браузере нужен JavaScript. Вы также можете подключиться по SSH или telnet.",
     fp="При первом подключении по SSH проверьте отпечаток ключа сервера:",
     first="Первый вход",
     steps=[
@@ -167,10 +212,13 @@ RU = dict(
         ("Стена", "Однострочные сообщения, которые все видят при входе, и новости от сисопа."),
         ("Email", "По желанию — уведомления о новых письмах или их копии, только на подтверждённый адрес."),
     ],
-    fido="Boar подала заявку на вступление в FidoNet — сеть, по которой BBS обмениваются почтой с 1980-х годов. Когда узел внесут в нодлист, с BBS можно будет писать нетмейл и читать эхоконференции.",
+    fido="Boar участвует в FidoNet — сети, по которой BBS обмениваются почтой с 1980-х годов. Наша система объединяет две площадки: общую BBS в Санкт-Петербурге и почтовый ретранслятор в Греции.",
+    fidospb="Санкт-Петербург, Россия — основной узел и Boar BBS по адресу boar-bbs.rh1.tech. Здесь можно читать эхоконференции, пользоваться нетмейлом и файловыми эхами.",
+    fidogreece="Греция — почтовый ретранслятор на домашнем сервере boar.rh1.tech. Он обменивается почтой с греческим аплинком и передаёт её на BBS в Санкт-Петербурге.",
+    fidostatus="Международные эхи уже доступны, соединение с российским аплинком работает. Административные и приватные конференции видны только сисопам. Файловые эхи (нодлисты и сетевые файлы) — отдельный раздел, не конференции. Почта передаётся по расписанию, а не мгновенно.",
     rules="Правила",
     rulestext="Уважайте других пользователей. Спам, реклама и попытки взлома запрещены. Сисоп может заблокировать учётную запись нарушителя.",
-    privacy="BBS хранит ваш ник, хеш пароля, ваши сообщения и журнал входов. Этот сайт не использует cookies и ничего не загружает со сторонних ресурсов.",
+    privacy="BBS хранит ваш ник, хеш пароля, ваши сообщения и журнал входов. Сайт не использует cookies и сторонние ресурсы. Терминал соединяется с BBS только после нажатия «Подключиться»; вход и журналирование такие же, как по SSH.",
     foot="Boar BBS — свободное программное обеспечение. Вопросы можно задать сисопу прямо на BBS.",
 )
 
@@ -178,4 +226,5 @@ RU = dict(
 (ROOT / "site/ru").mkdir(exist_ok=True)
 (ROOT / "site/ru/index.html").write_text(page("ru", RU))
 (ROOT / "site/404.html").write_text(page("en", EN, h1="NO CARRIER: that page isn't here."))
+(ROOT / "site/ru/404.html").write_text(page("ru", RU, h1="NO CARRIER: такой страницы нет."))
 print("site/ built")
