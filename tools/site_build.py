@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Builds site/ (boar.rh1.tech) from the texts below.
+"""Builds site/ (English boar.rh1.tech and Russian boar.rh1.ru).
 
     python3 tools/site_build.py && deploy/site.sh
 
@@ -17,6 +17,7 @@ FP = "SHA256:xMvzbhi5k5OnnNhmTObOjBzk6nGVrIRYRJGDP4aPNuI"
 
 
 def page(lang, t, h1=None):
+    host = "boar.rh1.tech" if lang == "en" else "boar.rh1.ru"
     return f'''<!DOCTYPE html>
 <html lang="{lang}">
 <head>
@@ -24,9 +25,9 @@ def page(lang, t, h1=None):
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>{t["title"]}</title>
 <meta name="description" content="{t["desc"]}">
-<link rel="canonical" href="https://boar.rh1.tech{"/" if lang == "en" else "/ru/"}">
+<link rel="canonical" href="https://{host}/">
 <link rel="alternate" hreflang="en" href="https://boar.rh1.tech/">
-<link rel="alternate" hreflang="ru" href="https://boar.rh1.tech/ru/">
+<link rel="alternate" hreflang="ru" href="https://boar.rh1.ru/">
 <link rel="alternate" hreflang="x-default" href="https://boar.rh1.tech/">
 <meta name="theme-color" content="#0000aa">
 <meta name="color-scheme" content="dark">
@@ -37,10 +38,10 @@ def page(lang, t, h1=None):
 <body>
 <header class="bar">
   <span class="bbs">Boar BBS</span>
-  <span class="host">boar.rh1.tech</span>
+  <span class="host">{host}</span>
   <nav aria-label="{t["langnav"]}">
-    <a class="item" href="/" hreflang="en" lang="en"{' aria-current="page"' if lang == "en" else ""}><span class="key">E</span>nglish</a>
-    <a class="item" href="/ru/" hreflang="ru" lang="ru"{' aria-current="page"' if lang == "ru" else ""}><span class="key">Р</span>усский</a>
+    <a class="item" href="https://boar.rh1.tech/" hreflang="en" lang="en"{' aria-current="page"' if lang == "en" else ""}><span class="key">E</span>nglish</a>
+    <a class="item" href="https://boar.rh1.ru/" hreflang="ru" lang="ru"{' aria-current="page"' if lang == "ru" else ""}><span class="key">Р</span>усский</a>
   </nav>
 </header>
 
@@ -225,4 +226,5 @@ RU = dict(
 (ROOT / "site/ru").mkdir(exist_ok=True)
 (ROOT / "site/ru/index.html").write_text(page("ru", RU))
 (ROOT / "site/404.html").write_text(page("en", EN, h1="NO CARRIER: that page isn't here."))
+(ROOT / "site/ru/404.html").write_text(page("ru", RU, h1="NO CARRIER: такой страницы нет."))
 print("site/ built")

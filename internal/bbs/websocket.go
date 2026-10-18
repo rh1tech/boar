@@ -8,6 +8,7 @@ import (
 	"net"
 	"net/http"
 	"runtime/debug"
+	"slices"
 	"time"
 
 	"github.com/coder/websocket"
@@ -15,13 +16,13 @@ import (
 
 // WebSocketHandler serves the existing BBS over binary UTF-8 WebSocket frames.
 // Bind its HTTP server to loopback behind a TLS proxy which sets X-Real-IP.
-func (s *Server) WebSocketHandler(ctx context.Context, origin string) http.Handler {
+func (s *Server) WebSocketHandler(ctx context.Context, origins ...string) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/terminal/ws" {
 			http.NotFound(w, r)
 			return
 		}
-		if r.Header.Get("Origin") != origin {
+		if origin := r.Header.Get("Origin"); origin == "" || !slices.Contains(origins, origin) {
 			http.Error(w, "Origin not allowed", http.StatusForbidden)
 			return
 		}

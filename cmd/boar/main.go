@@ -11,9 +11,11 @@ import (
 	"log/slog"
 	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"os/signal"
 	"path/filepath"
+	"strings"
 	"sync"
 	"syscall"
 	"time"
@@ -105,7 +107,7 @@ func parseFlags() (options, error) {
 	flag.StringVar(&o.publicAddr, "public-address", "", `how emails tell people to call, e.g. "bbs.example.com:2222"`)
 	flag.StringVar(&o.webAddr, "web", "", `sysop web interface address, e.g. "127.0.0.1:8023" ("" disables it; put a TLS proxy in front)`)
 	flag.StringVar(&o.terminalAddr, "terminal", "", `browser terminal HTTP address on loopback, e.g. "127.0.0.1:8025" (off when empty)`)
-	flag.StringVar(&o.terminalOrigin, "terminal-origin", "https://boar.rh1.tech", "exact allowed browser terminal origin")
+	flag.StringVar(&o.terminalOrigin, "terminal-origin", "https://boar.rh1.tech", "comma-separated exact allowed browser terminal origins")
 	flag.StringVar(&o.ftnInbound, "ftn-inbound", "", `FidoNet secure inbound to toss echomail from ("" disables the tosser)`)
 	flag.StringVar(&o.ftnInsecure, "ftn-inbound-nonsecure", "", "FidoNet non-secure inbound (used with -ftn-inbound)")
 	flag.StringVar(&o.ftnAddress, "ftn-address", "", `this node's FidoNet addresses, main one first, e.g. "2:5030/1651,2:410/51" (netmail for them is the BBS's)`)
@@ -141,8 +143,12 @@ func parseFlags() (options, error) {
 		if err != nil || !net.ParseIP(host).IsLoopback() {
 			return o, errors.New("-terminal must bind to a loopback IP address")
 		}
-		if o.terminalOrigin == "" {
-			return o, errors.New("-terminal-origin must not be empty")
+		for _, origin := range strings.Split(o.terminalOrigin, ",") {
+			u, err := url.Parse(origin)
+			if err != nil || u.Scheme != "https" || u.Host == "" || u.User != nil ||
+				u.Path != "" || u.RawQuery != "" || u.ForceQuery || u.Fragment != "" {
+				return o, errors.New("-terminal-origin must contain comma-separated HTTPS origins without paths")
+			}
 		}
 	}
 	return o, nil
@@ -239,7 +245,7 @@ func run() error {
 		servers = append(servers, serve)
 	}
 	if o.terminalAddr != "" {
-		serve, err := filesServer(ctx, o.terminalAddr, srv.WebSocketHandler(ctx, o.terminalOrigin), log)
+		serve, err := filesServer(ctx, o.terminalAddr, srv.WebSocketHandler(ctx, strings.Split(o.terminalOrigin, ",")...), log)
 		if err != nil {
 			return err
 		}

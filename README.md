@@ -56,7 +56,7 @@ The module targets Go 1.27. With the default `GOTOOLCHAIN=auto`, an older
 | `-idle`     | `15m`                       | Hang up on callers idle this long          |
 | `-web`      |                             | Sysop web interface address, e.g. `127.0.0.1:8023` (off when empty) |
 | `-terminal` |                             | Browser terminal HTTP listener; loopback only, e.g. `127.0.0.1:8025` |
-| `-terminal-origin` | `https://boar.rh1.tech` | Exact origin allowed to open browser sessions |
+| `-terminal-origin` | `https://boar.rh1.tech` | Comma-separated exact HTTPS origins allowed to open browser sessions |
 | `-v`        | off                         | Debug logging                              |
 
 ## What callers get
@@ -261,12 +261,22 @@ straight away.
 
 ## Public page
 
-`site/` is boar.rh1.tech: how to call the BBS and what it offers, in English
-(`/`) and Russian (`/ru/`), drawn like the BBS. It is static HTML with no
-scripts. The welcome screen at the top was rendered from a real CP437
+`site/` describes how to call the BBS and what it offers, drawn like the BBS.
+English is at `https://boar.rh1.tech/` (home server); Russian is at
+`https://boar.rh1.ru/` (spb1). Both serve the same build; the Russian vhost
+selects `ru/index.html` at its root. Existing `/ru/` URLs remain available.
+Language links and canonical/alternate URLs use the two language domains.
+The pages are static HTML with self-hosted branding and terminal scripts.
+The welcome screen at the top was rendered from a real CP437
 telnet session by the sysop interface's ANSI renderer. The live lines
 (node, online count, date) were cut, so the snapshot never goes stale.
-Publish it with `deploy/site.sh`; the nginx site is `deploy/nginx-boar-site.conf`.
+Rebuild with `python3 tools/site_build.py`, then publish to both hosts:
+`deploy/site.sh` for the home server (set `BOAR_SSH_IDENTITY` if needed) and
+`deploy/site.sh spb1` using the SPB1 SSH alias. Nginx configurations are
+`deploy/nginx-boar-site.conf` and `deploy/nginx-boar-ru.conf`. The latter
+proxies browser terminals directly to the loopback listener on SPB1; allow
+both language origins with
+`-terminal-origin https://boar.rh1.tech,https://boar.rh1.ru`.
 
 ## Sysop web interface
 
