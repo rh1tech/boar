@@ -55,9 +55,26 @@ The module targets Go 1.27. With the default `GOTOOLCHAIN=auto`, an older
 | `-max-signups` | `20`                     | New accounts per day, across the whole BBS |
 | `-idle`     | `15m`                       | Hang up on callers idle this long          |
 | `-web`      |                             | Sysop web interface address, e.g. `127.0.0.1:8023` (off when empty) |
+| `-terminal` |                             | Browser terminal HTTP listener; loopback only, e.g. `127.0.0.1:8025` |
+| `-terminal-origin` | `https://boar.rh1.tech` | Exact origin allowed to open browser sessions |
 | `-v`        | off                         | Debug logging                              |
 
 ## What callers get
+
+### Browser terminal
+
+The public site includes a self-hosted xterm.js 6.0.0 terminal (MIT license
+in `site/assets/vendor/xterm/LICENSE`). It opens an 80×25 UTF-8 session only
+after Connect is clicked, using the normal BBS login, node limits, idle
+timeout, approval rules and per-IP throttles. It does not expose a shell.
+ZMODEM requires a dedicated BBS client.
+
+Run Boar with `-terminal 127.0.0.1:8025` behind the TLS proxy in
+`deploy/nginx-boar-bbs.conf`. The website proxy in `deploy/nginx-boar-site.conf`
+verifies the BBS server's TLS certificate. Only the home server may reach the
+SPB1 terminal route and supply the visitor's IP. Keep that allowlist in sync
+if the home's external IP changes. Do not expose the loopback listener directly.
+The sysop interface remains separate.
 
 ### Mail
 

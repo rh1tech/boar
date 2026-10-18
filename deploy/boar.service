@@ -20,6 +20,8 @@ ExecStart=/opt/boar/bin/boar \
   -doors-dir /var/lib/boar/doors \
   -public-address boar-bbs.rh1.tech:2222 \
   -web 127.0.0.1:8023 \
+  -terminal 127.0.0.1:8025 \
+  -terminal-origin https://boar.rh1.tech \
   -ftn-inbound /var/spool/ftn/in \
   -ftn-inbound-nonsecure /var/spool/ftn/in.insecure \
   -ftn-address 2:5030/1651,2:410/51 \

@@ -5,6 +5,7 @@ go 1.27
 toolchain go1.27.1
 
 require (
+	github.com/coder/websocket v1.8.15
 	github.com/xx25/go-zmodem v0.0.0-20260928123519-057a34b28431
 	golang.org/x/crypto v0.57.0
 	modernc.org/sqlite v1.59.0
