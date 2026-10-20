@@ -7,5 +7,9 @@ Type=oneshot
 User=ftn
 Group=ftn
 Environment=FIDOCONFIG=/etc/husky/config
-ExecStart=/usr/local/bin/hpt toss scan pack
+# afix answers robot requests left in the netmail area; it takes optional
+# arguments, so it runs on its own.
+ExecStart=/usr/local/bin/hpt toss
+ExecStart=/usr/local/bin/hpt afix
+ExecStart=/usr/local/bin/hpt scan pack
 Nice=10

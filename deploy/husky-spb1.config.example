@@ -41,6 +41,7 @@ Robot default
   KillRequests yes
   ReportsAttr loc pvt k/s npd
 Robot areafix
+  KillRequests yes
   FromName Areafix
   RobotOrigin Boar BBS areafix
 
