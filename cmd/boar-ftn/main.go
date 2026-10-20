@@ -82,7 +82,7 @@ func netmail(args []string) error {
 	flavour := fs.String("flavour", "crash", "crash, normal, hold or direct")
 	charset := fs.String("charset", "CP437", "CP437, CP866, LATIN-1 or UTF-8")
 	password := fs.String("password", "", "packet password agreed with the destination, if any")
-	via := fs.String("via", "", "queue for this node instead, to route it on (e.g. spb1's relay, 2:5030/1651.1)")
+	via := fs.String("via", "", "queue for this node instead, to route it on (e.g. spb1's relay, 2:5030/1651.999)")
 	fs.Parse(args)
 
 	fromAddr, err := ftn.ParseAddr(*from)
@@ -170,10 +170,13 @@ func describe(name string, only []ftn.Addr) (string, int, error) {
 				continue
 			}
 			where := "netmail " + m.Orig.String() + " -> " + m.Dest.String()
+			subject := m.Subject
 			if m.Area != "" {
 				where = "echo " + m.Area + " from " + m.Orig.String()
+			} else if ftn.IsRobot(m.To) {
+				subject = ftn.HiddenSubject // the link's password
 			}
-			fmt.Fprintf(&body, "-- %s | %s -> %s | %s | %s | %s\n%s\n\n", where, m.From, m.To, m.Subject, m.Charset, m.Date.Format("2006-01-02 15:04"), m.Body)
+			fmt.Fprintf(&body, "-- %s | %s -> %s | %s | %s | %s\n%s\n\n", where, m.From, m.To, subject, m.Charset, m.Date.Format("2006-01-02 15:04"), m.Body)
 			n++
 		}
 		if only != nil && n == 0 {
@@ -188,8 +191,8 @@ func describe(name string, only []ftn.Addr) (string, int, error) {
 
 // netmailFor reports whether m is netmail addressed to one of addrs.
 func netmailFor(m ftn.Message, addrs []ftn.Addr) bool {
-	if m.Area != "" {
-		return false
+	if m.Area != "" || ftn.IsRobot(m.To) {
+		return false // echomail, or a request for the hub tosser's robot
 	}
 	for _, a := range addrs {
 		if m.Dest.Same(a) {
@@ -386,6 +389,25 @@ func route(args []string) error {
 	now := time.Now()
 	routed := 0
 	for _, np := range packets {
+		// Echomail is addressed by its packet: a hub tosser upstream packed
+		// it for one of our direct links, so it goes on to that link as is.
+		var echo []ftn.PackedMessage
+		for _, pm := range np.Pkt.Messages {
+			if !pm.IsNetmail() {
+				echo = append(echo, pm)
+			}
+		}
+		if len(echo) > 0 && !ftn.Contains(own, np.Pkt.To) {
+			if !ftn.Contains(routes.Direct, np.Pkt.To) {
+				return fmt.Errorf("%s: echomail for %s, which is not a direct link", np.Name, np.Pkt.To)
+			}
+			header := ftn.Packet{From: own[0], To: np.Pkt.To, Created: now}
+			if err := out.Queue(np.Pkt.To, ftn.Normal, header, echo); err != nil {
+				return fmt.Errorf("queue for %s: %w", np.Pkt.To, err)
+			}
+			fmt.Printf("passed on %d echomail messages to %s\n", len(echo), np.Pkt.To)
+			routed++
+		}
 		for _, pm := range np.Pkt.Messages {
 			if !pm.IsNetmail() {
 				continue

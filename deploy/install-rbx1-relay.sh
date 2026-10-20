@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Install (or refresh) rbx1's half of Boar's FidoNet setup: binkd as 2:410/51
-# (Petros' link) and 2:5030/1651.1 (spb1's point), relaying everything it
+# (Petros' link) and 2:5030/1651.999 (spb1's point), relaying everything it
 # receives to spb1, where Boar tosses it. Run as root from a copy of this
 # directory. Idempotent.
 #

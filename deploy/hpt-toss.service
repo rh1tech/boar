@@ -1,0 +1,11 @@
+[Unit]
+Description=hpt: toss mail for point 2:5030/1651.1 and export it to the uplinks
+After=binkd.service
+
+[Service]
+Type=oneshot
+User=ftn
+Group=ftn
+Environment=FIDOCONFIG=/etc/husky/config
+ExecStart=/usr/local/bin/hpt toss scan pack
+Nice=10

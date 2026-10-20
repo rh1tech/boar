@@ -2,3 +2,4 @@
 /boar
 /bin/
 *.out
+.DS_Store

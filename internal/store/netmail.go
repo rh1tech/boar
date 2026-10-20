@@ -63,7 +63,9 @@ func cleanNetmailName(s, def string) string {
 // ImportNetmail stores netmail that arrived for this node. Duplicates (same
 // MSGID, or the same message when it has none) are ignored.
 func (s *Store) ImportNetmail(m ftn.Message) (TossResult, error) {
-	if m.Area != "" {
+	if m.Area != "" || ftn.IsRobot(m.To) {
+		// A robot request is the hub tosser's to answer, and its subject is
+		// a password: the BBS keeps no copy.
 		return TossSkipped, nil
 	}
 	n := Netmail{
@@ -99,6 +101,9 @@ func (s *Store) RecordSentNetmail(n Netmail) (Netmail, error) {
 	n.FromName = cleanNetmailName(n.FromName, "Sysop")
 	n.ToName = cleanNetmailName(n.ToName, "Sysop")
 	n.Subject = term.Clean(n.Subject, MaxSubjectLen)
+	if ftn.IsRobot(n.ToName) {
+		n.Subject = ftn.HiddenSubject // the link's password
+	}
 	n.Body = truncateUTF8(n.Body, MaxNetmailBodySize)
 	if n.PostedAt.IsZero() {
 		n.PostedAt = s.now()
