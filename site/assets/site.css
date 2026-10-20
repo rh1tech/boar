@@ -135,3 +135,30 @@ footer p { margin: 0 0 0.3rem; }
 .f12 { color: var(--c12); } .f13 { color: var(--c13); } .f14 { color: var(--c14); } .f15 { color: var(--c15); }
 .b1 { background: var(--c1); } .b2 { background: var(--c2); } .b3 { background: var(--c3); }
 .b4 { background: var(--c4); } .b5 { background: var(--c5); } .b6 { background: var(--c6); } .b7 { background: var(--c7); }
+
+footer .credit {
+  max-width: none;
+  white-space: nowrap;
+  overflow-x: auto;
+}
+footer .footer-rh1 {
+  display: inline;
+  white-space: nowrap;
+  text-decoration: none;
+}
+footer .footer-rh1:hover { background: transparent; }
+.rh1-mark {
+  display: inline-block;
+  width: 1em;
+  height: 1em;
+  line-height: 0;
+  vertical-align: -0.15em;
+  margin-right: 0.3em;
+  overflow: visible;
+}
+.rh1-mark svg {
+  display: block;
+  width: 1em !important;
+  height: 1em !important;
+  overflow: visible;
+}

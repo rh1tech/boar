@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Boar BBS — вход по SSH и telnet</title>
-<meta name="description" content="Boar BBS — BBS в духе девяностых: личная почта, конференции, чат, игры и ANSI-графика. Подключение: ssh bbs@boar-bbs.rh1.tech или telnet boar-bbs.rh1.tech.">
+<meta name="description" content="Boar BBS — BBS в духе девяностых: личная почта, конференции, чат, игры и ANSI-графика. Подключение: ssh -p 2222 bbs@boar-bbs.rh1.tech или telnet boar-bbs.rh1.tech.">
 <link rel="canonical" href="https://boar.rh1.tech/ru/">
 <link rel="alternate" hreflang="en" href="https://boar.rh1.tech/">
 <link rel="alternate" hreflang="ru" href="https://boar.rh1.tech/ru/">
@@ -47,7 +47,7 @@
     <h2 id="call">Как подключиться</h2>
     <div class="way">
       <h3>SSH <span class="tag">с шифрованием</span></h3>
-      <p class="cmd">ssh bbs@boar-bbs.rh1.tech</p>
+      <p class="cmd">ssh -p 2222 bbs@boar-bbs.rh1.tech</p>
       <p>Имя пользователя подойдёт любое: логин и пароль BBS спросит уже после подключения. После регистрации можно добавить в настройках свой SSH-ключ — тогда вход будет сразу, без пароля.</p>
     </div>
     <div class="way">
@@ -57,7 +57,7 @@
     </div>
     <div class="way">
       <h3>BBS-клиент</h3>
-      <p>Подойдёт SyncTERM, NetRunner или любой другой клиент для ANSI-BBS. Укажите адрес <code>boar-bbs.rh1.tech</code> (telnet — порт 23, SSH — порт 22), а когда BBS спросит про терминал, выберите 2 (CP437).</p>
+      <p>Подойдёт SyncTERM, NetRunner или любой другой клиент для ANSI-BBS. Укажите адрес <code>boar-bbs.rh1.tech</code> (telnet — порт 23, SSH — порт 2222), а когда BBS спросит про терминал, выберите 2 (CP437).</p>
     </div>
     <p class="dim">При первом подключении по SSH проверьте отпечаток ключа сервера: <span class="fp">SHA256:xMvzbhi5k5OnnNhmTObOjBzk6nGVrIRYRJGDP4aPNuI</span> (ED25519)</p>
   </section>
@@ -87,7 +87,8 @@
 
 <footer>
   <p>Boar BBS — свободное программное обеспечение. Вопросы можно задать сисопу прямо на BBS.</p>
-  <p>© 2026 Mikhail Matveev · <a href="https://github.com/rh1tech/boar">github.com/rh1tech/boar</a> · GPL-3.0</p>
+  <p class="credit"><a class="footer-rh1" href="https://rh1.tech" target="_blank" rel="noopener noreferrer"><span class="rh1-mark" data-rh1-mark aria-hidden="true"></span>rh1.tech</a> · <a href="https://github.com/rh1tech/boar">github.com/rh1tech/boar</a> · GPL-3.0</p>
 </footer>
+<script src="/assets/js/rh1-origami.js?v=12" defer></script>
 </body>
 </html>
