@@ -292,7 +292,7 @@ Region 41) is answered by rbx1, which relays everything to spb1. Until
 | `gr.boar.rh1.tech` | rbx1 | an alias of `boar.rh1.tech` |
 
 ```
-Russian hubs  ↔  spb1 2:5030/1651  ↔  rbx1 2:5030/1651.1 + 2:410/51  ↔  Petros 2:410/9
+Russian hubs  ↔  spb1 2:5030/1651  ↔  rbx1 2:5030/1651.999 + 2:410/51  ↔  Petros 2:410/9
                  BBS, tosser           relay (point)                    Greece / EU
 ```
 
@@ -330,7 +330,7 @@ The BBS tosses the inbound every half minute (`-ftn-inbound`):
   else sees netmail addressed to their handle. Sysops reply and write new
   netmail there: it leaves from the address in the destination's net if the
   node has one (2:410/51 for Net 410), else the main one, through
-  `-ftn-direct` links or `-ftn-via` (rbx1's point 2:5030/1651.1), crash.
+  `-ftn-direct` links or `-ftn-via` (rbx1's point 2:5030/1651.999), crash.
   rbx1 passes it on with `boar-ftn route` (`ftn-forward-spb1.sh`), adding a
   Via line.
 - **File echoes** (TIC, FSC-0087): a file whose TIC has arrived is checked
@@ -356,7 +356,7 @@ printf '%s\n' BINKD LINUX | boar-ftn netmail -from 2:410/51 -to 2:410/9 \
 boar-ftn show /var/spool/ftn/in/*               # read what arrived
 boar-ftn notify -to you@example.com FILE        # email what arrived
 boar-ftn toss -data /var/lib/boar/boar.db       # import echoes into the BBS
-boar-ftn netmail -via 2:5030/1651.1 ...          # from spb1, through the relay
+boar-ftn netmail -via 2:5030/1651.999 ...          # from spb1, through the relay
 boar-ftn route -own 2:410/51 -via 2:410/9 FILE   # on rbx1: pass netmail on
 ```
 

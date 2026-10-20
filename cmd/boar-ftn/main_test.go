@@ -125,3 +125,63 @@ func TestRoutePassesOnOthersNetmail(t *testing.T) {
 		t.Errorf("FILE was not moved to -done: %v", err)
 	}
 }
+
+// spb1's hub tosser sends its point's echomail for Net 410 areas to Petros
+// through the relay: a packet addressed to a direct link is passed on to it,
+// message for message; echomail addressed to this system is not.
+func TestRoutePassesOnEchomailForDirectLinks(t *testing.T) {
+	dir := t.TempDir()
+	rbx1, petros := ftn.MustParseAddr("2:410/51"), ftn.MustParseAddr("2:410/9")
+	now := time.Date(2026, 10, 20, 9, 0, 0, 0, time.UTC)
+	echo := func(subject string) ftn.PackedMessage {
+		m := ftn.Message{Area: "BINKD", From: "Point", To: "All", Subject: subject, Orig: ftn.MustParseAddr("2:5030/1651.1"),
+			Date: now, MsgID: "2:5030/1651.1 " + subject, Charset: ftn.CP437, Body: "Echo.\n",
+			SeenBy: []ftn.Net2D{{Net: 410, Node: 51}}, Path: []ftn.Net2D{{Net: 410, Node: 51}}}
+		return m.Pack()
+	}
+	in := filepath.Join(dir, "in.spb1")
+	if err := os.MkdirAll(in, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	write := func(name string, pkt ftn.Packet) string {
+		path := filepath.Join(in, name)
+		f, err := os.Create(path)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer f.Close()
+		if _, err := pkt.WriteTo(f); err != nil {
+			t.Fatal(err)
+		}
+		return path
+	}
+	toPetros := write("abcd0002.pkt", ftn.Packet{From: rbx1, To: petros, Created: now,
+		Messages: []ftn.PackedMessage{echo("one"), echo("two")}})
+	toUs := write("abcd0003.pkt", ftn.Packet{From: rbx1, To: rbx1, Created: now,
+		Messages: []ftn.PackedMessage{echo("mine")}})
+
+	out := filepath.Join(dir, "out")
+	for _, path := range []string{toPetros, toUs} {
+		err := route([]string{"-outbound", out, "-done", filepath.Join(dir, "routed"),
+			"-own", "2:410/51,2:5030/1651.999", "-direct", "2:410/9,2:5030/1651", "-via", "2:410/9", path})
+		if err != nil {
+			t.Fatal(err)
+		}
+	}
+	queued := filepath.Join(out, "019a0009.out")
+	msgs, err := ftn.MessagesInFile(queued)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(msgs) != 2 || msgs[0].Subject != "one" || msgs[1].Subject != "two" || msgs[0].Area != "BINKD" {
+		t.Fatalf("queued for Petros: %+v", msgs)
+	}
+	raw, _ := os.ReadFile(queued)
+	if strings.Contains(string(raw), "\x01Via") {
+		t.Error("echomail got a Via line")
+	}
+	if strings.Contains(string(raw), "mine") {
+		t.Error("echomail addressed to this system was passed on")
+	}
+}
+

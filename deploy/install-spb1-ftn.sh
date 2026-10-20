@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Install (or refresh) Boar's FidoNet node on spb1: binkd as 2:5030/1651, the
 # main node since 2026-10-07, with Boar tossing its inbound. rbx1 is the relay
-# (point 2:5030/1651.1, deploy/install-rbx1-relay.sh). Run as root from a copy
+# (point 2:5030/1651.999, deploy/install-rbx1-relay.sh). Run as root from a copy
 # of this directory. Idempotent.
 #
 # The passwords are not in git. /etc/binkd/nodes.inc must exist already
@@ -58,6 +58,27 @@ rm -f /etc/systemd/system/binkd-poll-boss.service /etc/systemd/system/binkd-poll
 install -m 644 "$HERE/binkd-poll-rbx1.service" "$HERE/binkd-poll-rbx1.timer" \
   "$HERE/binkd-poll-hub.service" "$HERE/binkd-poll-hub.timer" /etc/systemd/system/
 
+echo "[ftn] hpt, the hub tosser for point 2:5030/1651.1..."
+# husky is not packaged for Ubuntu: build huskylib, smapi, fidoconf, areafix
+# and hpt from github.com/huskyproject with cmake into /usr/local first. The
+# live config holds passwords (template: husky-spb1.config.example).
+install -d -m 755 /usr/local/lib/boar
+install -m 755 "$HERE/ftn-copy-hpt.sh" /usr/local/lib/boar/ftn-copy-hpt.sh
+for d in in.hpt in.hpt.insecure hpt hpt/tmp.in hpt/tmp.out hpt/dupes hpt/msgb; do
+  install -d -m 2770 -o ftn -g ftn "/var/spool/ftn/$d"
+done
+install -d -m 2770 -o ftn -g ftn /var/log/husky
+install -d -m 2770 -o root -g ftn /etc/husky
+[ -e /etc/husky/areas ] || install -m 660 -o root -g ftn "$HERE/husky-spb1.areas" /etc/husky/areas
+install -m 644 "$HERE/hpt-toss.service" "$HERE/hpt-toss.timer" /etc/systemd/system/
+install -m 644 "$HERE/logrotate-husky" /etc/logrotate.d/husky
+hpt_ready=no
+if [ -x /usr/local/bin/hpt ] && [ -r /etc/husky/config ]; then
+  hpt_ready=yes
+else
+  echo "[ftn] /usr/local/bin/hpt or /etc/husky/config is missing; hpt-toss.timer stays off" >&2
+fi
+
 echo "[ftn] mail relay..."
 echo "postfix postfix/main_mailer_type select Satellite system" | debconf-set-selections
 echo "postfix postfix/mailname string spb1.re-hash.org" | debconf-set-selections
@@ -101,4 +122,8 @@ systemctl enable binkd.service binkd-poll-rbx1.timer binkd-poll-hub.timer >/dev/
 systemctl restart binkd.service
 systemctl start binkd-poll-rbx1.timer binkd-poll-hub.timer
 sleep 2
+if [ "$hpt_ready" = yes ]; then
+  systemctl enable --now hpt-toss.timer >/dev/null 2>&1
+  systemctl is-active hpt-toss.timer
+fi
 systemctl is-active binkd.service binkd-poll-rbx1.timer binkd-poll-hub.timer postfix.service

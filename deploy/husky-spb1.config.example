@@ -1,0 +1,94 @@
+# hpt (husky) on spb1: the hub tosser beside Boar BBS, added 2026-10-20 so
+# the node can feed point 2:5030/1651.1. Boar still tosses binkd's inbound for
+# the BBS; binkd's exec hook links every received mail file into hpt's own
+# inbound (ftn-copy-hpt.sh), and hpt exports to the links below.
+# Template: the live /etc/husky/config holds the passwords (packet password
+# = first 8 characters of the session password in nodes.inc) and is not in git.
+
+Name Boar BBS
+Sysop Mikhail Matveev
+Location Saint Petersburg, Russia
+Address 2:5030/1651
+Address 2:410/51
+
+ProtInbound   /var/spool/ftn/in.hpt
+Inbound       /var/spool/ftn/in.hpt.insecure
+Outbound      /var/spool/ftn/out
+TempInbound   /var/spool/ftn/hpt/tmp.in
+TempOutbound  /var/spool/ftn/hpt/tmp.out
+LogFileDir    /var/log/husky
+DupeHistoryDir /var/spool/ftn/hpt/dupes
+NodelistDir   /var/spool/ftn/hpt
+MsgBaseDir    passthrough
+EchoTossLog   /var/spool/ftn/hpt/echotoss.log
+ImportLog     /var/spool/ftn/hpt/import.log
+LockFile      /var/spool/ftn/hpt/hpt.lck
+AdvisoryLock  60
+LogLevels     123456789ABCDEFGHIJKLMNOPQRST
+CreateDirs    yes
+SeparateBundles yes
+DisablePID    yes
+
+Unpack "unzip -j -Loqq $a $f -d $p" 0 504b0304
+Pack zip zip -9 -j -q $a $f
+
+NetmailArea NETMAIL /var/spool/ftn/hpt/msgb/netmail -b squish
+BadArea     BAD     /var/spool/ftn/hpt/msgb/bad     -b squish
+DupeArea    DUPE    /var/spool/ftn/hpt/msgb/dupe    -b squish
+
+RobotsArea NETMAIL
+Robot default
+  KillRequests yes
+  ReportsAttr loc pvt k/s npd
+Robot areafix
+  FromName Areafix
+  RobotOrigin Boar BBS areafix
+
+LinkDefaults begin
+AllowEmptyPktPwd secure
+AreafixAutoCreate off
+ForwardRequests off
+LinkDefaults end
+
+# Net 5030 hub (Alexey Antonyuk). Polled hourly by binkd-poll-hub.timer.
+Link Net 5030 hub
+Aka 2:5030/731
+OurAka 2:5030/1651
+PktPwd HUB_PKT_PASSWORD
+AreafixAutoCreate on
+AreafixAutoCreateDefaults -dupecheck del -dupehistory 14 2:5030/1651.1
+AreafixAutoCreateFile /etc/husky/areas
+EchoMailFlavour normal
+
+# Petros (Net 410). Not linked here: what hpt packs for him goes into the
+# relay's filebox; rbx1/skg1 (2:5030/1651.999) passes it on to 2:410/9.
+Link Petros Argyrakis
+Aka 2:410/9
+OurAka 2:410/51
+PktPwd PETROS_PKT_PASSWORD
+AreafixAutoCreate on
+AreafixAutoCreateDefaults -a 2:410/51 -dupecheck del -dupehistory 14 2:5030/1651.1
+AreafixAutoCreateFile /etc/husky/areas
+FileBox /var/spool/ftn/obox.rbx1
+FileBoxAlways on
+
+# The relay on skg1: netmail for anyone not linked here goes through it.
+Link Relay rbx1
+Aka 2:5030/1651.999
+OurAka 2:5030/1651
+
+# The sysop's point (GoldED + hpt + binkd on the Mac). Holds: it polls us.
+Link Mikhail Matveev point
+Aka 2:5030/1651.1
+OurAka 2:5030/1651
+Password POINT_PASSWORD
+AreafixPwd POINT_PASSWORD
+Areafix on
+EchoMailFlavour hold
+NetmailFlavour hold
+
+Route hold  2:5030/1651.1   2:5030/1651.1
+Route crash 2:5030/731      2:5030/731 2:5030/0
+Route crash 2:5030/1651.999 *
+
+Include /etc/husky/areas
