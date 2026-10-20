@@ -109,13 +109,14 @@ func TestRoutePassesOnOthersNetmail(t *testing.T) {
 		t.Fatal(err)
 	}
 	// Both outgoing messages go to Petros (one direct, one via him), crash.
+	// Robot requests go out with their subject (the password) intact.
 	queued := filepath.Join(out, "019a0009.cut")
-	text, n, err := describe(queued, nil)
+	msgs, err := ftn.MessagesInFile(queued)
 	if err != nil {
 		t.Fatal(err)
 	}
-	if n != 2 || !strings.Contains(text, "to-petros") || !strings.Contains(text, "far") || strings.Contains(text, "to-us") {
-		t.Fatalf("queued for Petros (%d):\n%s", n, text)
+	if len(msgs) != 2 || msgs[0].Subject != "to-petros" || msgs[1].Subject != "far" {
+		t.Fatalf("queued for Petros: %+v", msgs)
 	}
 	raw, _ := os.ReadFile(queued)
 	if !strings.Contains(string(raw), "\x01Via 2:410/51 @") {
@@ -185,3 +186,41 @@ func TestRoutePassesOnEchomailForDirectLinks(t *testing.T) {
 	}
 }
 
+// The notice email must never carry a robot request's subject, which is the
+// link's password: requests are not netmail for the sysop, and when every
+// message is shown the subject is hidden.
+func TestDescribeHidesRobotPasswords(t *testing.T) {
+	dir := t.TempDir()
+	spb1, point := ftn.MustParseAddr("2:5030/1651"), ftn.MustParseAddr("2:5030/1651.1")
+	now := time.Date(2026, 10, 20, 9, 0, 0, 0, time.UTC)
+	nm := func(to, subject string) ftn.PackedMessage {
+		m := ftn.Message{From: "Mikhail Matveev", To: to, Subject: subject, Orig: point, Dest: spb1, Date: now,
+			MsgID: "2:5030/1651.1 " + subject, Charset: ftn.CP437, Body: "%LIST\n"}
+		return m.Pack()
+	}
+	path := filepath.Join(dir, "abcd0004.pkt")
+	f, err := os.Create(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pkt := ftn.Packet{From: point, To: spb1, Created: now, Messages: []ftn.PackedMessage{nm("AreaFix", "s3cretPw")}}
+	if _, err := pkt.WriteTo(f); err != nil {
+		t.Fatal(err)
+	}
+	f.Close()
+
+	text, n, err := describe(path, []ftn.Addr{spb1})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 0 || strings.Contains(text, "s3cretPw") {
+		t.Fatalf("robot request reported as the sysop's netmail (%d):\n%s", n, text)
+	}
+	text, n, err = describe(path, nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if n != 1 || strings.Contains(text, "s3cretPw") || !strings.Contains(text, ftn.HiddenSubject) {
+		t.Fatalf("show all (%d):\n%s", n, text)
+	}
+}

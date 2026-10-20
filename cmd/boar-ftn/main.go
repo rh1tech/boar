@@ -170,10 +170,13 @@ func describe(name string, only []ftn.Addr) (string, int, error) {
 				continue
 			}
 			where := "netmail " + m.Orig.String() + " -> " + m.Dest.String()
+			subject := m.Subject
 			if m.Area != "" {
 				where = "echo " + m.Area + " from " + m.Orig.String()
+			} else if ftn.IsRobot(m.To) {
+				subject = ftn.HiddenSubject // the link's password
 			}
-			fmt.Fprintf(&body, "-- %s | %s -> %s | %s | %s | %s\n%s\n\n", where, m.From, m.To, m.Subject, m.Charset, m.Date.Format("2006-01-02 15:04"), m.Body)
+			fmt.Fprintf(&body, "-- %s | %s -> %s | %s | %s | %s\n%s\n\n", where, m.From, m.To, subject, m.Charset, m.Date.Format("2006-01-02 15:04"), m.Body)
 			n++
 		}
 		if only != nil && n == 0 {
@@ -188,8 +191,8 @@ func describe(name string, only []ftn.Addr) (string, int, error) {
 
 // netmailFor reports whether m is netmail addressed to one of addrs.
 func netmailFor(m ftn.Message, addrs []ftn.Addr) bool {
-	if m.Area != "" {
-		return false
+	if m.Area != "" || ftn.IsRobot(m.To) {
+		return false // echomail, or a request for the hub tosser's robot
 	}
 	for _, a := range addrs {
 		if m.Dest.Same(a) {
